@@ -14,7 +14,7 @@
 % You should have received a copy of the GNU Affero General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-classdef PMEyeSim < PMEyeISCAN
+classdef PMEyeSim
 % PMEyeSim Simulated eye tracker
 %   PMEyeSim(LOCATIONS) Creates a new EyeTracker object that simulates an eye
 %   tracker. LOCATIONS should be an n x 2 matrix of fixation locations.
