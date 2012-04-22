@@ -19,16 +19,16 @@ function f = PMEvMotion()
 %   PMEvMotion(CONFIG) returns a function that returns true when the motion
 %   threshold specified in CONFIG has been reached or
 %   surpassed
-global CONFIG;
+global CONFIG PM;
 
 % Clear motion data before we start
-lastData = CONFIG.daq.getData('motion');
+lastData = PM.daq.getData('motion');
 if ~isempty(lastData)
     lastData = lastData(end);
 end
 
 function isFinished = innerFunction()
-    data = CONFIG.daq.getData('motion');
+    data = PM.daq.getData('motion');
     if isempty(data)
         isFinished = false;
         return;

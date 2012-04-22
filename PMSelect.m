@@ -20,27 +20,42 @@ function [index, value] = PMSelect(varargin)
 %   given functions returns a positive value, then returns the index of
 %   the function in the argument list as INDEX and the output of the
 %   function as OUTPUT
-global CONFIG;
+global CONFIG PM;
 
+debug = isfield(CONFIG, 'debug') && CONFIG.debug;
+eventLoop = PM.eventLoop;
+eventLoopIndexes = 1:length(eventLoop);
 indexes = 1:length(varargin);
 
-% start = GetSecs();
-% maxT = 0;
-% i = 0;
+if debug
+    start = GetSecs();
+    maxT = 0;
+    i = 0;
+end
 while true
-%     i = i + 1;
-%     t = GetSecs();
-    CONFIG.screenManager.updateAuxDisplay();
+    if debug
+        i = i + 1;
+        t = GetSecs();
+    end
+    for index=eventLoopIndexes
+        f = eventLoop{index};
+        f();
+    end
     for index=indexes
         f = varargin{index};
         value = f();
         if value
-%             fprintf('Executed PMSelect at %.2f Hz, Max Lag %.2f ms\n', i/(GetSecs()-start), maxT*1000);
+            if debug
+                fprintf('Executed PMSelect at %.2f Hz, Max Lag %.2f ms\n', ...
+                    i/(GetSecs()-start), maxT*1000);
+            end
             return;
         end
     end
-%     t = GetSecs() - t;
-%     if t > maxT
-%         maxT = t;
-%     end
+    if debug
+        t = GetSecs() - t;
+        if t > maxT
+            maxT = t;
+        end
+    end
 end

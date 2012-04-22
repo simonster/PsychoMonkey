@@ -16,6 +16,6 @@
 
 function varargout = PMScreen(varargin)
 % PMScreen PTB-equivalent screen function
-global CONFIG;
-[varargout{1:nargout}] = CONFIG.screenManager.Screen(varargin{:});
+global PM;
+[varargout{1:nargout}] = PM.screenManager.Screen(varargin{:});
 end

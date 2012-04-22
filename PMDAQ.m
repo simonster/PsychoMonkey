@@ -44,29 +44,42 @@ classdef PMDAQ < handle
         function self = PMDAQ()
             global CONFIG;
             daqreset;
-            allChannels = [CONFIG.channelsEye CONFIG.channelsMotion];
-            self.channels = struct('eye', 1:length(CONFIG.channelsEye), ...
-                'motion', length(CONFIG.channelsEye)+(1:length(CONFIG.channelsMotion)));
+            self.channels = struct();
+            allChannels = [];
+            if isfield(CONFIG, 'channelsEye')
+                self.channels.eye = length(allChannels)+(1:length(CONFIG.channelsEye));
+                allChannels = [allChannels CONFIG.channelsEye];
+            else
+                self.channels.eye = [];
+            end
+            if isfield(CONFIG, 'channelsMotion')
+                self.channels.motion = length(allChannels)+(1:length(CONFIG.channelsMotion));
+                allChannels = [allChannels CONFIG.channelsMotion];
+            else
+                self.channels.motion = [];
+            end
             self.nChannels = length(allChannels);
             
             % Initialize analog IO
-            self.ai = analoginput(CONFIG.daqAdaptor, CONFIG.daqID);
-            addchannel(self.ai, allChannels);
-            
-            assert(setverify(self.ai, 'SampleRate', ...
-                CONFIG.analogSampleRate) == CONFIG.analogSampleRate, ...
-                'Specified sample rate not supported');
-            set(self.ai, 'SamplesPerTrigger', Inf);
-            if ~isempty(CONFIG.daqInputType)
-                assert(strcmp(setverify(self.ai, 'InputType', ...
-                    CONFIG.daqInputType), CONFIG.daqInputType), ...
-                    'Specified input type not supported');
+            if ~isempty(allChannels)
+                self.ai = analoginput(CONFIG.daqAdaptor, CONFIG.daqID);
+                addchannel(self.ai, allChannels);
+                
+                assert(setverify(self.ai, 'SampleRate', ...
+                    CONFIG.analogSampleRate) == CONFIG.analogSampleRate, ...
+                    'Specified sample rate not supported');
+                set(self.ai, 'SamplesPerTrigger', Inf);
+                if ~isempty(CONFIG.daqInputType)
+                    assert(strcmp(setverify(self.ai, 'InputType', ...
+                        CONFIG.daqInputType), CONFIG.daqInputType), ...
+                        'Specified input type not supported');
+                end
+
+                start(self.ai);
+                
+                self.buffer = zeros(CONFIG.analogSampleRate*60, self.nChannels);
+                self.bufferLength = zeros(1, self.nChannels);
             end
-            
-            start(self.ai);
-            
-            self.buffer = zeros(CONFIG.analogSampleRate*60, self.nChannels);
-            self.bufferLength = zeros(1, self.nChannels);
             
             % Initialize digital IO
             self.dio = digitalio(CONFIG.daqAdaptor, CONFIG.daqID);

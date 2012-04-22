@@ -14,13 +14,15 @@
 % You should have received a copy of the GNU Affero General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-classdef PMEyeISCAN < handle
-% PMEyeISCAN ISCAN eye tracker interface
-%   PMEyeISCAN() Creates a new EyeTracker object for an ISCAN eye tracker.
-    properties(SetAccess = private, GetAccess = public)
-        % Locations of target rectangles.
-        targetRects = [];
-        targetIsOval = [];
+classdef PMEyeAnalog < handle
+% PMEyeAnalog Analog eye tracker interface
+%   PMEyeAnalog() Creates a new EyeTracker object for an analog eye
+%   tracker.
+    properties
+        % Calibration points
+        POINTS = [0 0; -1 0; 1 0; 0 -1; 0 1]*5;
+        % Type of transform (must be an argument of cp2tform)
+        TRANSFORM_TYPE = 'projective';
     end
     
     properties(Access = private)
@@ -42,7 +44,7 @@ classdef PMEyeISCAN < handle
     end
     
     methods
-        function self = PMEyeISCAN()
+        function self = PMEyeAnalog()
             global CONFIG;
             
             % Initialize raw eye data buffer
@@ -59,59 +61,18 @@ classdef PMEyeISCAN < handle
             end
         end
         
-        function plotTarget(self, location, radius)
-        % PLOTTARGET Show a target on the eye tracker or auxiliary display
-        %   OBJ.PLOTTARGET(LOCATION) draws a rectangular target at
-        %   LOCATION, defined in degress relative to the center of the
-        %   display
-        %   OBJ.PLOTTARGET(LOCATION, RADIUS) draws an oval target of RADIUS
-        %   degrees at LOCATION, defined in degress relative to the
-        %   center of the display
-            global CONFIG;
-            if exist('radius', 'var') && ~isempty(radius)
-                radius = round(PMAngleToPixels(radius));
-                location = round(PMAngleToPixels(location));
-                target = [CONFIG.displayCenter+location-radius ...
-                    CONFIG.displayCenter+location+radius];
-                self.targetIsOval = [self.targetIsOval; true];
-            else
-                if length(location) ~= 4
-                    error('PLOTTARGET(LOCATION) requires a rect');
-                end
-                location = round(PMAngleToPixels(location));
-                target = [CONFIG.displayCenter CONFIG.displayCenter]+location;
-                self.targetIsOval = [self.targetIsOval; false];
-            end
-            target(1) = max(min(CONFIG.displaySize(1), target(1)), 0);
-            target(2) = max(min(CONFIG.displaySize(2), target(2)), 0);
-            target(3) = max(min(CONFIG.displaySize(1), target(3)), 0);
-            target(4) = max(min(CONFIG.displaySize(2), target(4)), 0);
-            self.targetRects = [self.targetRects; target];
-            CONFIG.screenManager.targetsNeedRedraw = true;
-        end
-        
-        function clearTargets(self)
-        % CLEARTARGET Clear targets on eye tracker or auxiliar display
-        %   OBJ.CLEARTARGETS() clears all targets currently visible on the
-        %   display
-            global CONFIG;
-            self.targetRects = zeros(0, 4);
-            self.targetIsOval = [];
-            CONFIG.screenManager.underlayNeedsRedraw = true;
-        end
-        
         function [eyePosition, rawEyePosition] = getEyePosition(self, retrieveSamples)
         % GETEYEPOSITION Gets eye position and updates OSD
         %   EYEPOSITION = OBJ.GETEYEPOSITION() gets the current eye 
-        %   position in degrees and updates the auxiliary display
-            global CONFIG;
+        %   position in pixels and updates the auxiliary display
+            global CONFIG PM;
             
             if ~exist('retrieveSamples', 'var')
                 retrieveSamples = 1;
             end
             
             % Get last sample of eye data from the DAQ
-            rawEyeData = CONFIG.daq.getData('eye');
+            rawEyeData = PM.daq.getData('eye');
             
             if isempty(rawEyeData) && retrieveSamples == 1
                 % In case we haven't acquired a new sample since the last
@@ -137,7 +98,7 @@ classdef PMEyeISCAN < handle
             
             % Scale the eye data
             rawEyePosition = self.rawEyeDataBuffer(end-min(retrieveSamples, self.rawEyeDataBufferLength)+1:end, :);
-            eyePosition = tformfwd(self.transform, rawEyePosition(:, 1), rawEyePosition(:, 2));
+            eyePosition = PMAngleToPixels(tformfwd(self.transform, rawEyePosition(:, 1), rawEyePosition(:, 2)));
             self.lastEyePosition = eyePosition(end, :);
         end
         
@@ -146,9 +107,8 @@ classdef PMEyeISCAN < handle
         %   SUCCESS = OBJ.CALIBRATE() shows the dot pattern to calibrate
         %   the eye tracker. If SUCCESS is false, the user cancelled
         %   calibration.
-            global CONFIG;
+            global CONFIG PM;
             
-            POINTS = [0 0; -1 0; 1 0; 0 -1; 0 1]*5;
             KEY_USE = 32;       % Space
             KEY_ANIMATE = 65;   % A
             KEY_BLINK = 66;     % B
@@ -159,8 +119,8 @@ classdef PMEyeISCAN < handle
             KEYS = [KEY_USE KEY_ANIMATE KEY_BLINK KEY_BACK KEY_FORWARD ...
                 KEY_QUIT KEY_JUICE];
             
-            CONFIG.osd.state = 'ISCAN Calibration';
-            CONFIG.osd.keyInfo = struct(...
+            PM.osd.state = 'ISCAN Calibration';
+            PM.osd.keyInfo = struct(...
                 'Space', 'Use eye position',...
                 'A', 'Animate point',...
                 'B', 'Blink point',...
@@ -169,11 +129,11 @@ classdef PMEyeISCAN < handle
                 'J', 'Give juice',...
                 'ESC', 'Exit calibration'...
             );
-            CONFIG.osd.redraw();
+            PM.osd.redraw();
             
             pointRadius = round(PMAngleToPixels(CONFIG.fixationPointRadius));
-            pointLocations = round(PMAngleToPixels(POINTS));
-            pointValues = POINTS*NaN;
+            pointLocations = round(PMAngleToPixels(self.POINTS));
+            pointValues = self.POINTS*NaN;
             targetPos = pointValues;
             targetStd = pointValues;
             
@@ -182,9 +142,9 @@ classdef PMEyeISCAN < handle
             while true
                 % Show point
                 pointCenter = CONFIG.displayCenter+pointLocations(i, :);
-                PMScreen('FillOval', CONFIG.mainDisplayPtr, 255, ...
+                PMScreen('FillOval', 255, ...
                     [pointCenter-pointRadius pointCenter+pointRadius]);
-                PMScreen('Flip', CONFIG.mainDisplayPtr);
+                PMScreen('Flip');
                 
                 % Wait for a key press
                 key = 0;
@@ -194,7 +154,7 @@ classdef PMEyeISCAN < handle
                     if key == KEY_QUIT
                         return;
                     elseif key == KEY_JUICE
-                        CONFIG.daq.giveJuice(CONFIG.juiceManual);
+                        PM.daq.giveJuice(CONFIG.juiceManual);
                     else
                         if key == KEY_ANIMATE
                             [~, key] = PMSelect(...
@@ -210,9 +170,9 @@ classdef PMEyeISCAN < handle
                         
                         if key ~= KEY_USE && key ~= KEY_QUIT ...
                                 && key ~= KEY_BACK && key ~= KEY_FORWARD
-                            PMScreen('FillOval', CONFIG.mainDisplayPtr, 255, ...
+                            PMScreen('FillOval', 255, ...
                                 [pointCenter-pointRadius pointCenter+pointRadius]);
-                            PMScreen('Flip', CONFIG.mainDisplayPtr);
+                            PMScreen('Flip');
                         end
                     end
                 end
@@ -224,19 +184,19 @@ classdef PMEyeISCAN < handle
                     
                     targetPos(i, :) = tformfwd(self.transform, pointValues(i, 1), pointValues(i, 2));
                     targetStd(i, :) = abs(diff(prctile(eyePosition, [95 5])));
-                    self.plotTarget(targetPos(i, :), targetStd(i, :));
+                    PM.osd.plotTarget(targetPos(i, :), targetStd(i, :));
                     
-                    if sum(~isnan(pointValues)) == size(POINTS, 1)
+                    if sum(~isnan(pointValues)) == size(self.POINTS, 1)
                         % Got all points; try to transform
                         try
-                            self.transform = cp2tform(pointValues, POINTS, 'projective');
+                            self.transform = cp2tform(pointValues, self.POINTS, self.TRANSFORM_TYPE);
                             transform = self.transform;
                             save('calibration.mat', 'transform');
                             break;
                         catch e
                             disp(e.identifier);
-                            CONFIG.osd.state = 'Calibration Failed; Retrying';
-                            CONFIG.osd.redraw();
+                            PM.osd.state = 'Calibration Failed; Retrying';
+                            PM.osd.redraw();
                             i = 1;
                         end
                     else
@@ -253,17 +213,17 @@ classdef PMEyeISCAN < handle
                     % Go back without saving calibration
                     i = i - 1;
                     
-                    self.clearTargets();
+                    PM.osd.clearTargets();
                     for j=find(~isnan(targetPos(i, 1)))
-                    	self.plotTarget(targetPos(j, :), targetStd(j, :));
+                    	PM.osd.plotTarget(targetPos(j, :), targetStd(j, :));
                     end
-                elseif key == KEY_FORWARD && i ~= size(POINTS, 1);
+                elseif key == KEY_FORWARD && i ~= size(self.POINTS, 1);
                     % Go forward without saving calibration
                     i = i + 1;
                     
-                    self.clearTargets();
+                    PM.osd.clearTargets();
                     for j=find(~isnan(targetPos(i, 1)))
-                    	self.plotTarget(targetPos(j, :), targetStd(j, :));
+                    	PM.osd.plotTarget(targetPos(j, :), targetStd(j, :));
                     end
                 end
             end
@@ -289,10 +249,10 @@ classdef PMEyeISCAN < handle
                 end
                 
                 % Show oval
-                PMScreen('FillOval', CONFIG.mainDisplayPtr, 255, ...
+                PMScreen('FillOval', 255, ...
                     [pointCenter-radii(index) pointCenter+radii(index)]);
                 index = index + 1;
-                PMScreen('Flip', CONFIG.mainDisplayPtr);
+                PMScreen('Flip');
             end
             
             fn = @animationFunction;
@@ -321,10 +281,10 @@ classdef PMEyeISCAN < handle
                 if GetSecs() > timer
                     if ~showingPoint
                         % Show oval
-                        PMScreen('FillOval', CONFIG.mainDisplayPtr, 255, rect);
+                        PMScreen('FillOval', 255, rect);
                         blinksRemaining = blinksRemaining - 1;
                     end
-                    flipTime = PMScreen('Flip', CONFIG.mainDisplayPtr);
+                    flipTime = PMScreen('Flip');
                     showingPoint = ~showingPoint;
                     timer = flipTime + secsBetween;
                 end

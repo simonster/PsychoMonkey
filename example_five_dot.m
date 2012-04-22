@@ -1,84 +1,13 @@
-% PsychoMonkey
-% Copyright (C) 2012 Simon Kornblith
-%
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU Affero General Public License as
-% published by the Free Software Foundation, either version 3 of the
-% License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU Affero General Public License for more details.
-% 
-% You should have received a copy of the GNU Affero General Public License
-% along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-function paradigm(sessionName)
-
+function example_five_dot(sessionName)
 %% Define configuration options
-global CONFIG;
-CONFIG = struct();
-% # of the main (task) display
-CONFIG.mainDisplay = 2;
-% # of the auxiliary (info) display
-CONFIG.auxDisplay = 1;
-% Height in pixels of region of auxiliary display to use for info display
-CONFIG.OSDHeight = 150;
-% Distance from the animal to the main display, in cm
-CONFIG.displayDistance = 55;
-% Width of the main display, in cm
-CONFIG.displayWidth = 41;
-% Radius of the fixation dot, in degrees
-CONFIG.fixationPointRadius = 0.1;
-% Radius around the fixation dot for fixation, in degrees
-CONFIG.fixationRadius = 3;
-% Offset for targets, in degrees
-CONFIG.targetOffset = 6;
-% Image width, in degrees
-CONFIG.imageWidth = 4;
-% Background color of the screen
-CONFIG.backgroundColor = 0;
+global CONFIG PM;
+example_five_dot_config;
 
-% DAQ adaptor name
-CONFIG.daqAdaptor = 'nidaq';
-% DAQ adaptor ID
-CONFIG.daqID = 'Dev2';
-% Input type. I think this will always be SingleEnded.
-CONFIG.daqInputType = 'SingleEnded';
-% Analog sample rate in Hz. If using the motion detector, this should be at
-% least 10000. If not, 1000 is typically a good value.
-CONFIG.analogSampleRate = 10000;
-% The channels on the DAQ dedicated to the eye signal
-CONFIG.channelsEye = [0 1];
-% The channels on the DAQ dedicated to the motion sensor, or the empty set
-% if no motion sensor
-CONFIG.channelsMotion = 4;
-% The (digital) channel on the DAQ dedicated to juice
-CONFIG.channelJuice = 8;
-% The motion threshold, in volts
-CONFIG.motionThreshold = 0.5;
-% Use iscan interface
-CONFIG.eyeTracker = PMEyeISCAN();
-%CONFIG.eyeTracker = PMEyeSim([5 5; 0 0; -2 0; 2 0]);
-
-% Time penalty for motion (seconds)
-CONFIG.timeoutMotion = 5;
-% Time penalty for losing fixation
-CONFIG.timeoutFixationLost = 0;
-% Juice given manually (seconds)
-CONFIG.juiceManual = 150e-3;
-% Juice given for a correct response (seconds)
-CONFIG.juiceTimeCorrect = 150e-3;
-CONFIG.juiceBetweenCorrect = 20e-3;
-CONFIG.juiceRepsCorrect = 3;
-
-% Eccentricity of the dots on the screen, in degrees
-CONFIG.dotEccentricity = 4;
-% The amount of time the dot is on for
-CONFIG.dotTime = 5500e-3;
-% Reward given
-CONFIG.dotRewardTime = 2000e-3;
+% Set up session data information
+if ~exist('sessionName', 'var')
+    sessionName = ['Session ' datestr(now, 'yyyy-mm-dd HHMMSS')];
+end
+CONFIG.sessionName = sessionName;
 
 %% Define states and keycodes
 STATE_END = 0;
@@ -87,11 +16,12 @@ STATE_MANUAL = 2;
 STATE_AUTO = 3;
 STATE_BEGIN = STATE_MANUAL;
 
+KEY_CALIBRATE = 67;
 KEY_HORIZONTAL = 72;
 KEY_VERTICAL = 86;
 KEY_ALL = 65;
 KEY_MODE = 77;
-KEY_CENTER = 67;
+KEY_CENTER = 69;
 KEY_LEFT = 37;
 KEY_RIGHT = 39;
 KEY_UP = 38;
@@ -103,14 +33,9 @@ KEY_QUIT = 27;
 PMInit();
 
 % Initialize performance info for OSD
-CONFIG.osd.performance = struct(...
+PM.osd.performance = struct(...
     'Success', [0 0] ...
 );
-
-% Set up session data information
-if ~exist('sessionName', 'var')
-    sessionName = ['Session ' datestr(now, 'yyyy-mm-dd HHMMSS')];
-end
 
 datafile = [sessionName '.mat'];
 if exist(datafile, 'file')
@@ -122,16 +47,16 @@ else
         'time', [now Inf], ...
         'events', zeros(10000, 2), ...
         'nEvents', 0, ...
-        'CONFIG', rmfield(CONFIG, {'daq', 'osd', 'eyeTracker'}) ...
+        'CONFIG', CONFIG ...
     );
 end
 
 % Initialize performance info for OSD
-CONFIG.osd.performance = struct(...
+PM.osd.performance = struct(...
     'Left', [0 0], ...
     'Right', [0 0] ...
 );
-CONFIG.osd.keyInfo = struct();
+PM.osd.keyInfo = struct();
 
 % Set up session data information
 if ~exist('sessionName', 'var')
@@ -148,13 +73,15 @@ else
         'time', [now Inf], ...
         'events', zeros(10000, 2), ...
         'nEvents', 0, ...
-        'CONFIG', rmfield(CONFIG, {'daq', 'osd', 'eyeTracker'}) ...
+        'CONFIG', CONFIG ...
     );
 end
 
 state = STATE_CALIBRATE;
 nextState = STATE_CALIBRATE;
-pointRadius = round(PMAngleToPixels(CONFIG.fixationPointRadius));
+preCalibrateState = STATE_MANUAL;
+dotRadius = round(PMAngleToPixels(CONFIG.fixationPointRadius));
+fixationRadius = PMAngleToPixels(CONFIG.fixationRadius);
 
 dbstop if error;
 
@@ -164,51 +91,53 @@ while state
         timestamp = GetSecs();
         
         CONFIG.eyeTracker.calibrate();
-        nextState = STATE_MANUAL;
+        nextState = preCalibrateState;
     elseif state == STATE_MANUAL
-        CONFIG.osd.keyInfo = struct(...
+        PM.osd.keyInfo = struct(...
+            'C', 'Calibrate',...
             'LEFT', 'Left dot',...
             'RIGHT', 'Right dot',...
-            'C', 'Center',...
+            'E', 'Center',...
             'UP', 'Top dot',...
             'DOWN', 'Bottom dot',...
             'M', 'Automatic control',...
             'J', 'Give juice',...
             'ESC', 'Quit'...
         );
-        CONFIG.osd.state = 'Manual Control';
-        CONFIG.osd.redraw();
+        PM.osd.state = 'Manual Control';
+        PM.osd.redraw();
         
-        whatHappened = 0;
-        output = false;
-        dot = [0 0];
+        dotAngle = [0 0];
         
-        while whatHappened ~= 1 || (output ~= KEY_MODE && output ~= KEY_QUIT)
-            pointCenter = CONFIG.displayCenter+round(PMAngleToPixels(dot));
-            PMScreen('FillOval', CONFIG.mainDisplayPtr, 255, ...
-                [pointCenter-pointRadius pointCenter+pointRadius]);
-            timestamp = PMScreen('Flip', CONFIG.mainDisplayPtr);
-            CONFIG.eyeTracker.clearTargets();
-            CONFIG.eyeTracker.plotTarget(dot, CONFIG.fixationRadius);
+        while nextState == STATE_MANUAL
+            dotCenter = CONFIG.displayCenter+PMAngleToPixels(dotAngle);
+            
+            PMScreen('FillOval', 255, ...
+                [dotCenter-dotRadius dotCenter+dotRadius]);
+            timestamp = PMScreen('Flip');
+            PM.osd.clearTargets();
+            PM.osd.plotTarget(dotCenter, fixationRadius);
 
             % Wait for fixation, motion, or keypress
             [whatHappened, output] = PMSelect( ...
                PMEvKeyPress([KEY_CENTER KEY_LEFT KEY_RIGHT KEY_UP KEY_DOWN ...
-                KEY_JUICE KEY_MODE KEY_QUIT], true), ... 
-               PMEvMotion() ...
+                KEY_JUICE KEY_MODE KEY_QUIT KEY_CALIBRATE], true) ... 
             );
             
             if whatHappened == 1        % Key press
-                if output == KEY_CENTER
-                    dot = [0 0];
+                if output == KEY_CALIBRATE
+                    nextState = STATE_CALIBRATE;
+                    preCalibrateState = STATE_MANUAL;
+                elseif output == KEY_CENTER
+                    dotAngle = [0 0];
                 elseif output == KEY_LEFT
-                    dot = [-CONFIG.dotEccentricity 0];
+                    dotAngle = [-CONFIG.dotEccentricity 0];
                 elseif output == KEY_RIGHT
-                    dot = [CONFIG.dotEccentricity 0];
+                    dotAngle = [CONFIG.dotEccentricity 0];
                 elseif output == KEY_UP
-                    dot = [0 -CONFIG.dotEccentricity];
+                    dotAngle = [0 -CONFIG.dotEccentricity];
                 elseif output == KEY_DOWN
-                    dot = [0 CONFIG.dotEccentricity];
+                    dotAngle = [0 CONFIG.dotEccentricity];
                 elseif output == KEY_JUICE
                     CONFIG.daq.giveJuice(CONFIG.juiceManual);
                 elseif output == KEY_MODE
@@ -219,7 +148,9 @@ while state
             end
         end
     elseif state == STATE_AUTO
-        CONFIG.osd.keyInfo = struct(...
+        PM.osd.keyInfo = struct(...
+            'C', 'Calibrate',...
+            'E', 'Center only',...
             'H', 'Horizontal only',...
             'V', 'Vertical only',...
             'A', 'All',...
@@ -227,11 +158,10 @@ while state
             'J', 'Give juice',...
             'ESC', 'Quit'...
         );
-        CONFIG.osd.state = 'Automatic Control';
-        CONFIG.osd.redraw();
+        PM.osd.state = 'Automatic Control';
+        PM.osd.redraw();
         
         % Wait for fixation, motion, or keypress
-        output = false;
         horizontalDots = [-CONFIG.dotEccentricity 0
             0 0
             CONFIG.dotEccentricity 0
@@ -243,15 +173,15 @@ while state
         dots = [horizontalDots; verticalDots];
         dotIndex = 1;
         
-        while output ~= KEY_MODE && output ~= KEY_QUIT
-            dot = dots(dotIndex, :);
+        while nextState == STATE_AUTO
+            dotAngle = dots(dotIndex, :);
+            dotCenter = CONFIG.displayCenter+PMAngleToPixels(dotAngle);
             
-            pointCenter = CONFIG.displayCenter+round(PMAngleToPixels(dot));
-            PMScreen('FillOval', CONFIG.mainDisplayPtr, 255, ...
-                [pointCenter-pointRadius pointCenter+pointRadius]);
-            timestamp = PMScreen('Flip', CONFIG.mainDisplayPtr);
-            CONFIG.eyeTracker.clearTargets();
-            CONFIG.eyeTracker.plotTarget(dot, CONFIG.fixationRadius);
+            PMScreen('FillOval', 255, ...
+                [dotCenter-dotRadius dotCenter+dotRadius]);
+            timestamp = PMScreen('Flip');
+            PM.osd.clearTargets();
+            PM.osd.plotTarget(dotCenter, fixationRadius);
             advanceTime = timestamp + CONFIG.dotTime;
             
             while true
@@ -266,15 +196,17 @@ while state
                 
                 % Wait for fixation, motion, or keypress
                 [whatHappened, output] = PMSelect( ...
-                   PMEvKeyPress([KEY_HORIZONTAL KEY_VERTICAL KEY_ALL ...
-                    KEY_JUICE KEY_QUIT], true), ... 
+                   PMEvKeyPress([KEY_CENTER KEY_HORIZONTAL KEY_VERTICAL ...
+                    KEY_ALL KEY_JUICE KEY_QUIT KEY_MODE KEY_CALIBRATE], true), ... 
                    PMEvTimer(timeUntil), ...
-                   PMEvFixate(dot, CONFIG.fixationRadius, true), ...
-                   PMEvMotion() ...
+                   PMEvFixate(dotCenter, fixationRadius, true) ...
                 );
 
                 if whatHappened == 1        % Key press
-                    if output == KEY_HORIZONTAL
+                    if output == KEY_CALIBRATE
+                        nextState = STATE_CALIBRATE;
+                        preCalibrateState = STATE_AUTO;
+                    elseif output == KEY_HORIZONTAL
                         dots = horizontalDots;
                         dotIndex = 1;
                         break;
@@ -291,7 +223,7 @@ while state
                         dotIndex = 1;
                         break;
                     elseif output == KEY_JUICE
-                        CONFIG.daq.giveJuice(CONFIG.juiceManual);
+                        PM.daq.giveJuice(CONFIG.juiceManual);
                     elseif output == KEY_MODE
                         nextState = STATE_MANUAL;
                         break;
@@ -307,7 +239,7 @@ while state
                         end
                         break;
                     else
-                        CONFIG.daq.giveJuice(CONFIG.juiceTimeCorrect, ...
+                        PM.daq.giveJuice(CONFIG.juiceTimeCorrect, ...
                             CONFIG.juiceBetweenCorrect, CONFIG.juiceRepsCorrect);
                     end
                 end

@@ -18,11 +18,10 @@ function f = PMEvFixate(location, radius, invert)
 %PMEvFixate Create a fixation event
 %   PMEvFixate(LOCATION) creates a function that returns true
 %   when the subject fixates within the box defined by LOCATION, specified
-%   in degrees from the center of the screen
+%   in pixels
 %
 %   PMEvFixate(LOCATION, RADIUS) creates a function that returns true
-%   when the subject fixates within RADIUS degrees of LOCATION, specified
-%   in degrees from the center of the screen
+%   when the subject fixates within RADIUS pixels of LOCATION
 %
 %   PMEvFixate(LOCATION, ..., true) creates a function that returns
 %   true when the subject's fixation leaves the specified interval
