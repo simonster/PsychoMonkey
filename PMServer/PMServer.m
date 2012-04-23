@@ -31,17 +31,9 @@ classdef PMServer < handle
         function self = PMServer()
             global CONFIG PM;
             
-            % Set Java classpath
-            pathToPMServer = fileparts(which('PMServer.m'));
-            javaClasspaths = {fullfile(pathToPMServer, 'bin', 'com', ...
-                'simonster', 'PsychoMonkey'), ...
-                fullfile(pathToPMServer, 'Java-WebSocket', 'dist', ...
-                'WebSocket.jar')};
-            javaclasspath(javaClasspaths, javaclasspath('-dynamic'));
-            
             % Initialize server
-            import com.simonster.PsychoMonkey;
-            self.server = PsychoMonkey.PMServer(CONFIG);
+            import com.simonster.PsychoMonkey.PMServer;
+            self.server = PMServer(savejson([], CONFIG));
             
             % Hook into OSD and event loop
             addListener(PM.osd, 'targetsChanged', @self.onTargetsChanged);
@@ -50,30 +42,30 @@ classdef PMServer < handle
             PM.eventLoop{end+1} = @updateEyePosition;
         end
         
-        function onTargetsChanged(self)
+        function onTargetsChanged(self, src, event)
             global PM;
-            self.server.updateTargets(savejson('', ...
+            self.server.updateTargets(savejson([], ...
                 struct('targetRects', PM.osd.targetRects, ...
                 'targetIsOval', PM.osd.targetIsOval)));
         end
         
-        function onStatusChanged(self)
+        function onStatusChanged(self, src, event)
             global PM;
-            self.server.updateStatus(savejson('', ...
+            self.server.updateStatus(savejson([], ...
                 struct('state', PM.osd.state, ...
                 'performance', PM.osd.performance, ...
                 'keyInfo', PM.osd.keyInfo)));
         end
         
-        function onScreenCommand(self, command)
-            if strcmp(command{1}, 'Flip')
-                self.server.updateDisplay(savejson('', self.drawCommands, ...
+        function onScreenCommand(self, src, event)
+            if strcmp(event.command, 'Flip')
+                self.server.updateDisplay(savejson([], self.drawCommands, ...
                     'NoRowBracket', 1));
                 self.drawCommands = {};
-            elseif(strcmp(command{1}, 'MakeTexture'))
-                self.server.addTexture(command{2}, command{3});
+            elseif(strcmp(event.command, 'MakeTexture'))
+                self.server.addTexture(event.textureIndex, event.arguments{1});
             else
-                self.drawCommands{end+1} = command;
+                self.drawCommands{end+1} = [{event.command} event.arguments];
             end
         end
         

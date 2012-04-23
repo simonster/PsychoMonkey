@@ -135,7 +135,6 @@ classdef PMEyeAnalog < handle
                 'J', 'Give juice',...
                 'ESC', 'Exit calibration'...
             );
-            PM.osd.redraw();
             
             pointRadius = round(PMAngleToPixels(CONFIG.fixationPointRadius));
             pointLocations = round(PMAngleToPixels(self.POINTS));
@@ -202,7 +201,6 @@ classdef PMEyeAnalog < handle
                         catch e
                             disp(e.identifier);
                             PM.osd.state = 'Calibration Failed; Retrying';
-                            PM.osd.redraw();
                             i = 1;
                         end
                     else

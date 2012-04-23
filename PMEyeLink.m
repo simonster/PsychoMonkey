@@ -19,10 +19,6 @@ classdef PMEyeLink < handle
 %   PMEyeAnalog() Creates a new EyeTracker object for an analog eye
 %   tracker.
     properties
-        % Calibration points
-        POINTS = [0 0; -1 0; 1 0; 0 -1; 0 1]*5;
-        % Type of transform (must be an argument of cp2tform)
-        TRANSFORM_TYPE = 'projective';
         % Which eye to use ('r' or 'l')
         EYE = 'r';
         % Whether to draw boxes on the tracker. This is probably not a good
@@ -76,7 +72,7 @@ classdef PMEyeLink < handle
             Eyelink('Openfile', self.edfName);
             
             if self.DRAW_ON_TRACKER
-                addlistener(PM.osd, 'targetsChanged', @onTargetsChanged);
+                addlistener(PM.osd, 'targetsChanged', @self.onTargetsChanged);
             end
         end
         
@@ -148,7 +144,6 @@ classdef PMEyeLink < handle
                 'ESC', 'Cancel calibration'...
             );
             PM.osd.clearTargets();
-            PM.osd.redraw();
             pointRadius = round(PMAngleToPixels(CONFIG.fixationPointRadius));
             
             Eyelink('StartSetup');
@@ -226,14 +221,14 @@ classdef PMEyeLink < handle
             end
         end
         
-        function onTargetsChanged(self)
+        function onTargetsChanged(self, osd, event)
         % ONTARGETSCHANGED Updates targets on EyeLink.
         %   This function is registered as a listener for the
         %   targetsChanged event on PMOSD.
-            if isempty(PM.osd.targetRects)
+            if isempty(osd.targetRects)
                 Eyelink('command','clear_screen 0');
             else
-                rect = PM.osd.targetRects{end};
+                rect = osd.targetRects(end, :);
                 Eyelink('command','draw_box %d %d %d %d 15', ...
                     rect(1), rect(2), rect(3), rect(4));
             end

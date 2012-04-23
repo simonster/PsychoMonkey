@@ -82,9 +82,11 @@ classdef PMScreenManager < handle
                 Screen(func);
             elseif strcmpi(func, 'MakeTexture')
                 [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
-                notify(self, 'screenCommand', [{func} varargout{1} varargin]);
+                notify(self, 'screenCommand', ...
+                    PMEventDataScreenCommand(func, varargin, varargout{1}));
             else
-                notify(self, 'screenCommand', [{func} varargin]);
+                notify(self, 'screenCommand', ...
+                    PMEventDataScreenCommand(func, varargin));
                 [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
             end
         end

@@ -13,23 +13,11 @@
 % 
 % You should have received a copy of the GNU Affero General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-function PMInit()
-% PMInit Initialize screens and DAQ
-%   PMInit() Opens PTB windows on main window and auxiliary window (if
-%   specified) and initializes the DAQ
-global CONFIG PM;
-if isempty(CONFIG)
-    error('Configuration not loaded');
-end
-PM = struct();
-PM.eventLoop = {};
-PM.daq = PMDAQ();
-PM.screenManager = PMScreenManager();
-PM.osd = PMOSD();
-if isfield(CONFIG, 'eyeTracker')
-    CONFIG.eyeTracker.init();
-end
-if isfield(CONFIG, 'server')
-    PM.server = PMServer();
+function PMSetup()
+    % Set Java classpath. This has to be done before anything else, because
+    % otherwise MATLAB obliterates our global variables.
+    pathToPM = fileparts(which('PMSetup.m'));
+    javaaddpath(fullfile(pathToPM, 'PMServer', 'bin'));
+    javaaddpath(fullfile(pathToPM, 'PMServer', 'Java-WebSocket', 'dist', ...
+        'WebSocket.jar'));
 end
