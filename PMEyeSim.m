@@ -14,7 +14,7 @@
 % You should have received a copy of the GNU Affero General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-classdef PMEyeSim
+classdef PMEyeSim < handle
 % PMEyeSim Simulated eye tracker
 %   PMEyeSim(LOCATIONS) Creates a new EyeTracker object that simulates an eye
 %   tracker. LOCATIONS should be an n x 2 matrix of fixation locations.
@@ -33,6 +33,12 @@ classdef PMEyeSim
                 error('PMEyeSim supports at most 9 fixation locations');
             end
             self.evKeyboardFixate = PMEvKeyPress(48+(1:size(self.positions, 1)));
+        end
+        
+        function init(self)
+        % INIT Initialize eye tracker 
+        %   OBJ.INIT() is called after PMScreenManager, PMDAQ, and PMOSD
+        %   have been initialized to complete eye tracker initialization.
         end
         
         function eyePosition = getEyePosition(self)

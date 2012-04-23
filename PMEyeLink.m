@@ -23,7 +23,12 @@ classdef PMEyeLink < handle
         POINTS = [0 0; -1 0; 1 0; 0 -1; 0 1]*5;
         % Type of transform (must be an argument of cp2tform)
         TRANSFORM_TYPE = 'projective';
+        % Which eye to use ('r' or 'l')
         EYE = 'r';
+        % Whether to draw boxes on the tracker. This is probably not a good
+        % idea for recording, since it will cause the tracker to drop
+        % frames.
+        DRAW_ON_TRACKER = false;
     end
     
     properties(Access = private)
@@ -49,7 +54,10 @@ classdef PMEyeLink < handle
             end
         end
         
-        function initEyelink(self)
+        function init(self)
+        % INIT Initialize eye tracker 
+        %   OBJ.INIT() is called after PMScreenManager, PMDAQ, and PMOSD
+        %   have been initialized to complete eye tracker initialization.
             global CONFIG PM;
             
             if isstruct(self.el)
@@ -66,6 +74,10 @@ classdef PMEyeLink < handle
             Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, ...
                 0, CONFIG.displaySize(1)-1, CONFIG.displaySize(2)-1);
             Eyelink('Openfile', self.edfName);
+            
+            if self.DRAW_ON_TRACKER
+                addlistener(PM.osd, 'targetsChanged', @onTargetsChanged);
+            end
         end
         
         function eyePosition = getEyePosition(self, retrieveSamples)
@@ -139,7 +151,6 @@ classdef PMEyeLink < handle
             PM.osd.redraw();
             pointRadius = round(PMAngleToPixels(CONFIG.fixationPointRadius));
             
-            self.initEyelink();
             Eyelink('StartSetup');
             Eyelink('WaitForModeReady', self.el.waitformodereadytime);
             Eyelink('SendKeyButton', double('c'), 0, self.el.KB_PRESS);
@@ -212,6 +223,19 @@ classdef PMEyeLink < handle
                         Eyelink('SendKeyButton', hex2dec('0010'), 0, self.el.KB_PRESS);
                     end
                 end
+            end
+        end
+        
+        function onTargetsChanged(self)
+        % ONTARGETSCHANGED Updates targets on EyeLink.
+        %   This function is registered as a listener for the
+        %   targetsChanged event on PMOSD.
+            if isempty(PM.osd.targetRects)
+                Eyelink('command','clear_screen 0');
+            else
+                rect = PM.osd.targetRects{end};
+                Eyelink('command','draw_box %d %d %d %d 15', ...
+                    rect(1), rect(2), rect(3), rect(4));
             end
         end
     end

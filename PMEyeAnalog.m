@@ -102,6 +102,12 @@ classdef PMEyeAnalog < handle
             self.lastEyePosition = eyePosition(end, :);
         end
         
+        function init(self)
+        % INIT Initialize eye tracker 
+        %   OBJ.INIT() is called after PMScreenManager, PMDAQ, and PMOSD
+        %   have been initialized to complete eye tracker initialization.
+        end
+        
         function calibrate(self)
         % CALIBRATE Calibrate the eye tracker
         %   SUCCESS = OBJ.CALIBRATE() shows the dot pattern to calibrate
