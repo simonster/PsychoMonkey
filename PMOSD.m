@@ -28,23 +28,42 @@ classdef PMOSD < handle
     end
     
     properties(Access = private)
-        textSpacing = 10;
-        
         redrawInfo = false;
         redrawTargets = false;
+        textSpacing = 10;
         lastPlottedFixationPoint = [];
+    end
+    
+    events
+        targetsChanged
+        statusChanged
     end
     
     methods
         function self = PMOSD()
         end
         
+        function set.state(self, value)
+            self.state = value;
+            self.onStatusChanged()
+        end
+        
+        function set.performance(self, value)
+            self.performance = value;
+            self.onStatusChanged()
+        end
+        
+        function set.keyInfo(self, value)
+            self.keyInfo = value;
+            self.onStatusChanged();
+        end
+        
         function draw(self, window, force)
-            % DRAW Draw the info on the aux display
-            % OBJ.DRAW() draws the OSD info at the top of the aux display,
-            %   without executing a flip. This should only be called from
-            %   PMScreenManager; it should never be called explicitly from a
-            %   a paradigm.
+        % DRAW Draw the info on the aux display
+        % OBJ.DRAW() draws the OSD info at the top of the aux display,
+        %   without executing a flip. This should only be called from
+        %   PMScreenManager; it should never be called explicitly from a
+        %   a paradigm.
             global CONFIG;
             
             % If the OSD has changed, then it needs to be redrawn
@@ -140,13 +159,13 @@ classdef PMOSD < handle
         end
         
         function plotTarget(self, location, radius)
-            % PLOTTARGET Show a target on the eye tracker or auxiliary display
-            %   OBJ.PLOTTARGET(LOCATION) draws a rectangular target at
-            %   LOCATION, defined in degress relative to the center of the
-            %   display
-            %   OBJ.PLOTTARGET(LOCATION, RADIUS) draws an oval target of RADIUS
-            %   degrees at LOCATION, defined in degress relative to the
-            %   center of the display
+        % PLOTTARGET Show a target on the eye tracker or auxiliary display
+        %   OBJ.PLOTTARGET(LOCATION) draws a rectangular target at
+        %   LOCATION, defined in degress relative to the center of the
+        %   display
+        %   OBJ.PLOTTARGET(LOCATION, RADIUS) draws an oval target of RADIUS
+        %   degrees at LOCATION, defined in degress relative to the
+        %   center of the display
             global CONFIG;
             if exist('radius', 'var') && ~isempty(radius)
                 target = [location-radius location+radius];
@@ -164,24 +183,27 @@ classdef PMOSD < handle
             target(4) = max(min(CONFIG.displaySize(2), target(4)), 0);
             self.targetRects = [self.targetRects; target];
             self.redrawTargets = true;
+            
+            notify(self, 'targetsChanged');
         end
         
         function clearTargets(self)
-            % CLEARTARGET Clear targets on eye tracker or auxiliar display
-            %   OBJ.CLEARTARGETS() clears all targets currently visible on the
-            %   display
+        % CLEARTARGET Clear targets on eye tracker or auxiliar display
+        %   OBJ.CLEARTARGETS() clears all targets currently visible on the
+        %   display
             global PM;
             self.targetRects = zeros(0, 4);
             self.targetIsOval = [];
             PM.screenManager.redrawUnderlay = true;
+            
+            notify(self, 'targetsChanged');
         end
-        
-        function redraw(self)
-            % REDRAW Flag OSD info for redraw
-            %   OBJ.REDRAW() indicates that the OSD info needs to be
-            %   redrawn. Call this when you have changed performance or key
-            %   info data
+    end
+    
+    methods(Access = protected)
+        function onStatusChanged(self)
             self.redrawInfo = true;
+            notify(self, 'statusChanged');
         end
     end
 end

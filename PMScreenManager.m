@@ -22,17 +22,15 @@ classdef PMScreenManager < handle
         offscreenOSDPtr = [];
     end
     
-    properties(SetAccess = private, GetAccess = public)
-        % Locations of target rectangles.
-        targetRects = [];
-        targetIsOval = [];
-    end
-    
     properties(SetAccess = private, GetAccess = private)
         auxDisplayPtr;
         offscreenDupPtr = [];
         auxWaitingForAsyncFlip = false;
         haveDrawnSinceLastFlip = false;
+    end
+    
+    events
+        screenCommand
     end
     
     methods
@@ -82,7 +80,11 @@ classdef PMScreenManager < handle
             
             if strcmpi(func, 'CloseAll')
                 Screen(func);
+            elseif strcmpi(func, 'MakeTexture')
+                [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
+                notify(self, 'screenCommand', [{func} varargout{1} varargin]);
             else
+                notify(self, 'screenCommand', [{func} varargin]);
                 [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
             end
         end

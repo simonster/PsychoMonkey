@@ -24,3 +24,6 @@ PM.eventLoop = {};
 PM.daq = PMDAQ();
 PM.screenManager = PMScreenManager();
 PM.osd = PMOSD();
+if issfield(CONFIG, 'server') && CONFIG.server
+    PM.server = PMServer();
+end

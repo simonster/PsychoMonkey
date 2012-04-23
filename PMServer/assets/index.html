@@ -1,0 +1,68 @@
+<html>
+<head>
+<title>PsychoMonkey Web Client</title>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="client.js"></script>
+<style type="text/css">
+.pmcanvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+}
+.osd {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	overflow: auto;
+	font-family: Courier;
+	font-size: 10px;
+	line-height: 10px;
+}
+.osd-state {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 33.3333%;
+	height: 20px;
+	white-space: pre;
+}
+.osd-keyInfo {
+	position: absolute;
+	top: 20px;
+	left: 0;
+	bottom: 0;
+	width: 33.3333%;
+	white-space: pre;
+}
+.osd-performance-container {
+	position: absolute;
+	top: 0:
+	left: 66.6667%;
+	bottom: 0;
+	right: 0;
+	white-space: pre;
+}
+.textures {
+	display: none;
+}
+body {
+	background: #000;
+	padding: 1px;
+}
+</style>
+</head>
+<body>
+<div id="osd">
+	<div id="osd-state">Loading</div>
+	<div id="osd-keyInfo">&nbsp;</div>
+	<div id="osd-performance-container">
+		<div>Performance</div>
+		<div id="osd-performance"></div>
+	</div>
+</div>
+<div id="textures"></div>
+</body>
+</html>

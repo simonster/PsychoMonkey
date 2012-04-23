@@ -105,7 +105,6 @@ while state
             'ESC', 'Quit'...
         );
         PM.osd.state = 'Manual Control';
-        PM.osd.redraw();
         
         dotAngle = [0 0];
         
@@ -159,7 +158,6 @@ while state
             'ESC', 'Quit'...
         );
         PM.osd.state = 'Automatic Control';
-        PM.osd.redraw();
         
         % Wait for fixation, motion, or keypress
         horizontalDots = [-CONFIG.dotEccentricity 0
