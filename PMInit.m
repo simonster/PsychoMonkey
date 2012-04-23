@@ -18,12 +18,15 @@ function PMInit()
 % PMInit Initialize screens and DAQ
 %   PMInit() Opens PTB windows on main window and auxiliary window (if
 %   specified) and initializes the DAQ
-global PM;
+global CONFIG PM;
 PM = struct();
 PM.eventLoop = {};
 PM.daq = PMDAQ();
 PM.screenManager = PMScreenManager();
 PM.osd = PMOSD();
-if issfield(CONFIG, 'server') && CONFIG.server
+if isfield(CONFIG, 'eyeTracker')
+    CONFIG.eyeTracker.init();
+end
+if isfield(CONFIG, 'server')
     PM.server = PMServer();
 end
