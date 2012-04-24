@@ -15,7 +15,7 @@
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 function varargout = PMScreen(varargin)
-% PMScreen PTB-equivalent screen function
+% PMSCREEN PTB-equivalent Screen function
 global PM;
 [varargout{1:nargout}] = PM.screenManager.Screen(varargin{:});
 end
