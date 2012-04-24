@@ -1,3 +1,21 @@
+/*
+ * PsychoMonkey
+ * Copyright (C) 2012 Simon Kornblith
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 var PTB = function(context) {
 	this.ctx = context;
 }
@@ -189,7 +207,7 @@ Client.prototype = {
 			} else {
 				var pct = Math.round(success/total*100);
 			}
-			performanceStrings.push(i+" "+success+"/"+total+" ("+pct"%)");
+			performanceStrings.push(i+" "+success+"/"+total+" ("+pct+"%)");
 		}
 		document.getElementById("osd-performance").textContent = performanceStrings.join("\n");
 	},
@@ -199,7 +217,7 @@ Client.prototype = {
 	 */
 	"TRG":function(payload) {
 		for(var i=0; i<payload.targetRects.length; i++) {
-			this._ptb[payload.targetIsOval[i] ? "FrameOval" : "FrameRect"]([255 255 0 1],
+			this._ptb[payload.targetIsOval[i] ? "FrameOval" : "FrameRect"]([255, 255, 0, 1],
 				payload.targetRects[i]);
 		}
 	},

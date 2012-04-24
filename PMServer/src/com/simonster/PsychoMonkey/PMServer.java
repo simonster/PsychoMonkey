@@ -40,7 +40,7 @@ public class PMServer extends WebSocketServer {
 		textureHandler = new PMTextureHandler();
 		configHandler = new PMConfigHandler(configJson);
 		server.createContext("/texture/", textureHandler);
-		server.createContext("/config.json", configHandler);
+		server.createContext("/config.js", configHandler);
 		server.createContext("/", new PMStaticHandler());
 		server.setExecutor(null);
 		server.start();

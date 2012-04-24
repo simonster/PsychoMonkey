@@ -60,7 +60,11 @@ public class PMStaticHandler implements HttpHandler {
 			}
 			
 			// Send file
-			exchange.getResponseHeaders().add("Content-Type", mimeTypeMap.getContentType(assetFile));
+			String contentType = mimeTypeMap.getContentType(assetFile);
+			if(contentType.equals("text/html")) {
+				contentType += "; charset=utf-8";
+			}
+			exchange.getResponseHeaders().add("Content-Type", contentType);
 			exchange.sendResponseHeaders(200, assetFile.length());
 			FileInputStream in = new FileInputStream(assetFile);
 			OutputStream out = exchange.getResponseBody();
