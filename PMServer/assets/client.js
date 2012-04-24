@@ -121,7 +121,7 @@ PTB.prototype = {
 		}
 		return newArray;
 	},
-	"_makeOvalPath":function(aRect) {
+	"_makeOvalPath":function(rect) {
 		var width = rect[3]-rect[1],
 			height = rect[4]-rect[2];
 		this.ctx.beginPath();
