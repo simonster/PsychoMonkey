@@ -65,7 +65,8 @@ classdef PMServer < handle
             elseif(strcmp(event.command, 'MakeTexture'))
                 self.server.addTexture(event.textureIndex, event.arguments{1});
             else
-                self.drawCommands{end+1} = [{event.command} event.arguments];
+                self.drawCommands{end+1} = struct('command', event.command, 
+                    'arguments', event.arguments);
             end
         end
         

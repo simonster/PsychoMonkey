@@ -225,16 +225,17 @@ Client.prototype = {
 	/**
 	 * Redraws the underlying image
 	 */
-	"DRW":function(commands) {
+	"DRW":function(directives) {
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		for(var i=0; i<commands.length; i++) {
-			if(commands[i][0] === "DrawTexture") {
+		for(var i=0; i<directives.length; i++) {
+			var directive = directives[i];
+			if(directive.command === "DrawTexture") {
 				this.ctx.save();
-				var texture = this._textures[commands[i][1]],
-					sourceRect = commands[i][2],
-					destinationRect = commands[i][3],
-					rotationAngle = commands[i][4],
-					globalAlpha = commands[i][6];
+				var texture = this._textures[directive.arguments[0]],
+					sourceRect = directive.arguments[1],
+					destinationRect = directive.arguments[2],
+					rotationAngle = directive.arguments[3],
+					globalAlpha = directive.arguments[5];
 				
 				try {
 					if(rotationAngle) this.ctx.rotate(rotationAngle*Math.PI/180);
@@ -255,7 +256,7 @@ Client.prototype = {
 					this.ctx.restore();
 				}
 			} else {
-				this.ptb[commands[i][0]].apply(this.ptb, commands[i].slice(1));
+				this.ptb[directive.command].apply(this.ptb, directive.arguments);
 			}
 		}
 	},
