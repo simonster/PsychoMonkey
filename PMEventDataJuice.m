@@ -22,7 +22,7 @@ classdef PMEventDataJuice < event.EventData
     end
     
     methods
-        function self = PMEventDataScreenCommand(time, between, reps)
+        function self = PMEventDataJuice(time, between, reps)
             self.time = time;
             self.between = between;
             self.reps = reps;
