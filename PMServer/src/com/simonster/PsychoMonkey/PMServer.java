@@ -139,7 +139,7 @@ public class PMServer extends WebSocketServer {
 		for(int y=0; y<height; y++) {
 			for(int x=0; x<width; x++) {
 				for(int c=0; c<3; c++) {
-					bufferBytes[(y*width+x)*3+c] = imageData[x][y][c];  
+					bufferBytes[(y*width+x)*3+c] = imageData[y][x][c];  
 				}
 			}
 		}

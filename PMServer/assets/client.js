@@ -298,7 +298,7 @@ window.addEventListener("DOMContentLoaded", function(event) {
 	var canvas = document.createElement("canvas");
 	canvas.width = CONFIG.displaySize[0];
 	canvas.height = CONFIG.displaySize[1];
-	canvas.className = "pmcanvas";
+	canvas.id = "pmcanvas";
 	document.body.appendChild(canvas);
 	document.getElementById("osd").style.height = CONFIG.OSDHeight/CONFIG.displaySize[1]*100+"%";
 	
