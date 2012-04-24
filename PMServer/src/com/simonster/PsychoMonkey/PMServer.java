@@ -36,6 +36,7 @@ public class PMServer extends WebSocketServer {
 		// Start web socket server
 		super(new InetSocketAddress(WS_PORT));
 		clientSockets = new CopyOnWriteArraySet<WebSocket>();
+		this.start();
 		
 		// Start HTTP server
 		HttpServer server = HttpServer.create(new InetSocketAddress(HTTP_PORT), -1);
