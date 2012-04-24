@@ -46,7 +46,7 @@ public class PMStaticHandler implements HttpHandler {
 			// Verify that this file is actually a child of the assets directory
 			boolean isSafe = false;
 			try {
-				isSafe = !assetFile.getCanonicalPath().startsWith(assetsDirectory.getCanonicalPath());
+				isSafe = assetFile.getCanonicalPath().startsWith(assetsDirectory.getCanonicalPath());
 			} catch (IOException e) {}
 			if(!isSafe) {
 				exchange.sendResponseHeaders(403, -1);
