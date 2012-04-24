@@ -123,7 +123,7 @@ public class PMServer extends WebSocketServer {
 	/**
 	 * Sends a message notifying that juice was given
 	 */
-	public void updateEyePosition(String data) {
+	public void juiceGiven(String data) {
 		broadcastMessage("JCE: "+data);
 	}
 	
