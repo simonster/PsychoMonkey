@@ -38,12 +38,12 @@ PTB.prototype = {
 		this.ctx.save();
 		try {
 			var colorArray = this._getColorArrayOrSetColor(color, "strokeStyle", "white");
-			var penWidthsAreArray = typeof penWidth === "object";
-			if(!penWidthsAreArray) this.ctx.lineWidth = penWidth ? penWidth : 1;
+			if(typeof penWidth !== "object") penWidth = [penWidth];
+			if(penWidth.length === 1) this.ctx.lineWidth = penWidth ? penWidth : 1;
 			var rects = this._getRectArray();
 			for(var i=0; i<rects.length; i++) {
 				if(colorArray) this.ctx.strokeStyle = this._colorToStyle(colorArray[i]);
-				if(penWidthsAreArray) this.ctx.lineWidth = penWidth[i];
+				if(penWith.length !== 1) this.ctx.lineWidth = penWidth[i];
 				this._makeOvalPath(rects[i]);
 				this.ctx.stroke();
 			}
@@ -69,13 +69,13 @@ PTB.prototype = {
 		this.ctx.save();
 		try {
 			var colorArray = this._getColorArrayOrSetColor(color, "strokeStyle", "white");
-			var penWidthsAreArray = typeof penWidth === "object";
-			if(!penWidthsAreArray) this.ctx.lineWidth = penWidth ? penWidth : 1;
+			if(typeof penWidth !== "object") penWidth = [penWidth];
+			if(penWidth.length === 1) this.ctx.lineWidth = penWidth ? penWidth : 1;
 			var rects = this._getRectArray();
 			for(var i=0; i<rects.length; i++) {
 				var rect = rects[i];
 				if(colorArray) this.ctx.strokeStyle = this._colorToStyle(colorArray[i]);
-				if(penWidthsAreArray) this.ctx.lineWidth = penWidth[i];
+				if(penWidth.length !== 1) this.ctx.lineWidth = penWidth[i];
 				this.ctx.strokeRect(rect[0], rect[1], rect[2]-rect[0], rect[3]-rect[1]);
 			}
 		} finally {
@@ -155,6 +155,8 @@ PTB.prototype = {
 			return "white";
 		} else if(typeof color !== "object") {
 			return "rgb("+color+", "+color+", "+color+")";
+		} else if(color.length === 1) {
+			return "rgb("+color[0]+", "+color[0]+", "+color[0]+")";
 		} else if(color.length === 3) {
 			return "rgb("+color[0]+", "+color[1]+", "+color[2]+")";
 		} else if(color.length === 4) {
