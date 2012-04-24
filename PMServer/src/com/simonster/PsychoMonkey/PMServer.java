@@ -50,7 +50,7 @@ public class PMServer extends WebSocketServer {
 	}
 
 	public void onClose(WebSocket socket, int arg1, String arg2, boolean arg3) {
-		clientSockets.add(socket);
+		clientSockets.remove(socket);
 	}
 
 	public void onError(WebSocket socket, Exception e) {
