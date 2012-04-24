@@ -40,7 +40,7 @@ classdef PMServer < handle
             addlistener(PM.osd, 'targetsChanged', @self.onTargetsChanged);
             addlistener(PM.osd, 'statusChanged', @self.onStatusChanged);
             addlistener(PM.screenManager, 'screenCommand', @self.onScreenCommand);
-            PM.eventLoop{end+1} = @updateEyePosition;
+            PM.eventLoop{end+1} = @self.updateEyePosition;
         end
         
         function onTargetsChanged(self, src, event)
