@@ -33,12 +33,13 @@ classdef PMServer < handle
             
             % Initialize server
             import com.simonster.PsychoMonkey.PMServer;
-            self.server = PMServer(savejson([], CONFIG));
+            self.server = PMServer(savejson([], ...
+                rmfield(CONFIG, 'eyeTracker')));
             
             % Hook into OSD and event loop
-            addListener(PM.osd, 'targetsChanged', @self.onTargetsChanged);
-            addListener(PM.osd, 'statusChanged', @self.onStatusChanged);
-            addListener(PM.screenManager, 'screenCommand', @self.onScreenCommand);
+            addlistener(PM.osd, 'targetsChanged', @self.onTargetsChanged);
+            addlistener(PM.osd, 'statusChanged', @self.onStatusChanged);
+            addlistener(PM.screenManager, 'screenCommand', @self.onScreenCommand);
             PM.eventLoop{end+1} = @updateEyePosition;
         end
         
