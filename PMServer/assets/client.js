@@ -281,13 +281,14 @@ Client.prototype = {
 	/**
 	 * Preloads textures
 	 */
-	"TXT":function(payload) {
-		for(var i in payload) {
-			if(!this._textures[i]) {
+	"TXT":function(textureIndices) {
+		for(var i=0; i<textureIndices.length; i++) {
+			var textureIndex = textureIndices[i];
+			if(!this._textures[textureIndex]) {
 				var img = document.createElement("img");
-				img.src = "/textures/"+i+".png";
+				img.src = "/texture/"+textureIndex+".png";
 				document.getElementById("textures").appendChild(img);
-				this._textures[i] = img;
+				this._textures[textureIndex] = img;
 			}
 		}
 	}
@@ -308,6 +309,7 @@ window.addEventListener("DOMContentLoaded", function(event) {
 		var data = event.data,
 			code = data.substr(0, 3),
 			payload = JSON.parse(data.substr(5));
+		console.log(data);
 		if(code in client) {
 			client[code](payload);
 		} else {
