@@ -182,7 +182,7 @@ Client.prototype = {
 	/**
 	 * Updates the on-screen display
 	 */
-	"OSD":function(payload) {
+	"OSD":function(info) {
 		document.getElementById("osd-state").textContent = info.state;
 		
 		var longestKey = 0,
@@ -217,7 +217,7 @@ Client.prototype = {
 	 */
 	"TRG":function(payload) {
 		for(var i=0; i<payload.targetRects.length; i++) {
-			this._ptb[payload.targetIsOval[i] ? "FrameOval" : "FrameRect"]([255, 255, 0, 1],
+			this.ptb[payload.targetIsOval[i] ? "FrameOval" : "FrameRect"]([255, 255, 0, 1],
 				payload.targetRects[i]);
 		}
 	},
@@ -255,7 +255,7 @@ Client.prototype = {
 					this.ctx.restore();
 				}
 			} else {
-				this._ptb[commands[i][0]].apply(this._ptb, commands[i].slice(1));
+				this.ptb[commands[i][0]].apply(this.ptb, commands[i].slice(1));
 			}
 		}
 	},

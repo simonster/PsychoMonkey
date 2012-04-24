@@ -149,6 +149,7 @@ public class PMServer extends WebSocketServer {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		ImageIO.write(img, "png", out);
 		textureHandler.textures.put(textureIndex, out.toByteArray());
+		System.out.println("Registered texture "+textureIndex);
 		
 		// Update texture message
 		String keys = "";
