@@ -24,7 +24,7 @@ PTB.prototype = {
 		this.ctx.save();
 		try {
 			var colorArray = this._getColorArrayOrSetColor(color, "fillStyle", "white");
-			var rects = this._getRectArray();
+			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
 				if(colorArray) this.ctx.fillStyle = this._colorToStyle(colorArray[i]);
 				this._makeOvalPath(rects[i]);
@@ -40,7 +40,7 @@ PTB.prototype = {
 			var colorArray = this._getColorArrayOrSetColor(color, "strokeStyle", "white");
 			if(typeof penWidth !== "object") penWidth = [penWidth];
 			if(penWidth.length === 1) this.ctx.lineWidth = penWidth ? penWidth : 1;
-			var rects = this._getRectArray();
+			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
 				if(colorArray) this.ctx.strokeStyle = this._colorToStyle(colorArray[i]);
 				if(penWith.length !== 1) this.ctx.lineWidth = penWidth[i];
@@ -55,7 +55,7 @@ PTB.prototype = {
 		this.ctx.save();
 		try {
 			var colorArray = this._getColorArrayOrSetColor(color, "fillStyle", "white");
-			var rects = this._getRectArray();
+			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
 				var rect = rects[i];
 				if(colorArray) this.ctx.fillStyle = this._colorToStyle(colorArray[i]);
@@ -71,7 +71,7 @@ PTB.prototype = {
 			var colorArray = this._getColorArrayOrSetColor(color, "strokeStyle", "white");
 			if(typeof penWidth !== "object") penWidth = [penWidth];
 			if(penWidth.length === 1) this.ctx.lineWidth = penWidth ? penWidth : 1;
-			var rects = this._getRectArray();
+			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
 				var rect = rects[i];
 				if(colorArray) this.ctx.strokeStyle = this._colorToStyle(colorArray[i]);
@@ -143,7 +143,7 @@ PTB.prototype = {
 	},
 	"_getRectArray":function(rect) {
 		if(!rect) {
-			return [0, 0, CONFIG.displaySize[0], CONFIG.displaySize[1]];
+			return [[0, 0, CONFIG.displaySize[0], CONFIG.displaySize[1]]];
 		}
 		if(typeof rect[0] === "object") {
 			return this._transpose(rect);
