@@ -23,7 +23,7 @@ classdef PMScreenManager < handle
     end
     
     properties(SetAccess = private, GetAccess = private)
-        auxDisplayPtr;
+        auxDisplayPtr = [];
         offscreenDupPtr = [];
         auxWaitingForAsyncFlip = false;
         haveDrawnSinceLastFlip = false;
@@ -72,7 +72,7 @@ classdef PMScreenManager < handle
             % offscreen window.
             global CONFIG;
 
-            if strcmp(func, 'Flip')
+            if strcmp(func, 'Flip') && ~isempty(self.auxDisplayPtr)
                 Screen('CopyWindow', self.mainDisplayPtr, self.offscreenDupPtr, ...
                     [0 CONFIG.OSDHeight CONFIG.displaySize]);
                 self.redrawUnderlay = true;
