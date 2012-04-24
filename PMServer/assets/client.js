@@ -43,7 +43,7 @@ PTB.prototype = {
 			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
 				if(colorArray) this.ctx.strokeStyle = this._colorToStyle(colorArray[i]);
-				if(penWith.length !== 1) this.ctx.lineWidth = penWidth[i];
+				if(penWidth.length !== 1) this.ctx.lineWidth = penWidth[i];
 				this._makeOvalPath(rects[i]);
 				this.ctx.stroke();
 			}
@@ -122,10 +122,10 @@ PTB.prototype = {
 		return newArray;
 	},
 	"_makeOvalPath":function(rect) {
-		var width = rect[3]-rect[1],
-			height = rect[4]-rect[2];
+		var width = rect[2]-rect[0],
+			height = rect[3]-rect[1];
 		this.ctx.beginPath();
-		this.ctx.translate(rect[1]+width/2, rect[2]+height/2);
+		this.ctx.translate(rect[0]+width/2, rect[1]+height/2);
 		this.ctx.scale(width/2, height/2);
 		this.ctx.arc(0, 0, 1, 0, Math.PI*2, false);
 		this.ctx.closePath();
@@ -217,6 +217,10 @@ Client.prototype = {
 	 * Updates targets plotted over the canvas
 	 */
 	"TRG":function(payload) {
+		if(!payload.targetRects) return;
+		if(typeof payload.targetRects[0] !== "object") {
+			payload.targetRects = [payload.targetRects];
+		}
 		for(var i=0; i<payload.targetRects.length; i++) {
 			this.ptb[payload.targetIsOval[i] ? "FrameOval" : "FrameRect"]([255, 255, 0, 1],
 				payload.targetRects[i]);
@@ -227,19 +231,26 @@ Client.prototype = {
 	 * Redraws the underlying image
 	 */
 	"DRW":function(directives) {
-		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		var cw = this.canvas.width, ch = this.canvas.height;
+		this.ctx.clearRect(0, 0, cw, ch);
 		if(!(directives instanceof Array)) directives = [directives];
 		for(var i=0; i<directives.length; i++) {
 			var directive = directives[i];
 			if(directive.command === "DrawTexture") {
 				this.ctx.save();
-				var texture = this._textures[directive.arguments[0]],
+				var textureIndex = typeof directive.arguments[0] === "object" ? directive.arguments[0][0] : directive.arguments[0],
+					texture = this._textures[textureIndex],
 					sourceRect = directive.arguments[1],
 					destinationRect = directive.arguments[2],
 					rotationAngle = directive.arguments[3],
 					globalAlpha = directive.arguments[5];
+
 				
-				try {
+				try {				
+					if(!destinationRect) {
+						var nw = texture.naturalWidth, nh = texture.naturalHeight;
+						destinationRect = [cw/2-nw/2, ch/2-nh/2, cw/2+nw/2, cw/2+nh/2];
+					}
 					if(rotationAngle) this.ctx.rotate(rotationAngle*Math.PI/180);
 					if(globalAlpha) this.ctx.globalAlpha = globalAlpha;
 					
@@ -273,10 +284,11 @@ Client.prototype = {
 			this.ctx.fillRect(this._lastEyePosition[0]-2, this._lastEyePosition[1]-2,
 				this._lastEyePosition[0]+2, this._lastEyePosition[1]+2);
 		}
-		if(pos[0]-2 >= 0 && pos[1]-2 >= 0 && pos[0]+2 < CONFIG.displaySize[0] &&
-				pos[1]+2 < CONFIG.displaySize[1]) {
+		if(pos[0]-2 >= 0 && pos[1]-2 >= 0 && pos[0]+2 < this.canvas.width &&
+				pos[1]+2 < this.canvas.height) {
 			this.ctx.fillColor = "rgb(255, 0, 0)";
 			this.ctx.fillRect(pos[0]-2, pos[1]-2, pos[0]+2, pos[1]+2);
+			this._lastEyePosition = pos;
 		}
 		this.ctx.restore();
 	},
