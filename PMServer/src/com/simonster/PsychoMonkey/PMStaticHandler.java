@@ -27,7 +27,7 @@ public class PMStaticHandler implements HttpHandler {
 			e.printStackTrace();
 			return;
 		}
-		while(classFile.getName() != "PMServer") {
+		while(!classFile.getName().equals("PMServer")) {
 			classFile = classFile.getParentFile();
 		}
 		assetsDirectory = new File(classFile, "assets");
