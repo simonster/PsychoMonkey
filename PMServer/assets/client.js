@@ -174,7 +174,7 @@ OSD.prototype.update = function(info) {
 var Client = function(canvas) {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
-	this.ptb = new PTB(this._ctx);
+	this.ptb = new PTB(this.ctx);
 	this._lastEyePosition = null;
 	this._textures = {};
 }
