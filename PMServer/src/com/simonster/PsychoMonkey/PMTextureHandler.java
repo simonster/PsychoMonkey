@@ -16,18 +16,15 @@ public class PMTextureHandler implements HttpHandler {
 	
 	public void handle(HttpExchange exchange) throws IOException {
 		try {
-			System.out.println("Received texture request");
 			// Validate URI
 			URI uri = exchange.getRequestURI();
 			String imageName = uri.getPath().substring(9);
 			String imageSuffix = imageName.substring(imageName.length()-4);
-			System.out.println("Image suffix is "+imageSuffix);
 			if(!imageSuffix.equals(".png")) {
 				exchange.sendResponseHeaders(404, -1);
 				return;
 			}
 			String imageBaseName = imageName.substring(0, imageName.length()-4);
-			System.out.println("Image basename is "+imageBaseName);
 			
 			// Get the texture from the texture hash map
 			int textureIndex = 0;
@@ -37,7 +34,6 @@ public class PMTextureHandler implements HttpHandler {
 				exchange.sendResponseHeaders(404, -1);
 				return;
 			}
-			System.out.println("Requested texture "+textureIndex);
 			byte[] texture = textures.get(textureIndex);
 			if(texture == null) {
 				exchange.sendResponseHeaders(404, -1);
