@@ -1,7 +1,7 @@
 function example_five_dot(sessionName)
 %% Define configuration options
-global CONFIG PM;
 example_five_dot_config;
+global CONFIG PM;
 
 % Set up session data information
 if ~exist('sessionName', 'var')

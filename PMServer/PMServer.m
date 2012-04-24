@@ -18,7 +18,7 @@ classdef PMServer < handle
 % PMServer Server for observing paradigms over a network
     properties(Constant = true)
         % Maximum rate at which updates will be sent to the socket, in Hz
-        MAX_UPDATE_RATE = 100;
+        MAX_UPDATE_RATE = 10;
     end
     
     properties(Access = private)
@@ -44,19 +44,17 @@ classdef PMServer < handle
             PM.eventLoop{end+1} = @self.updateEyePosition;
         end
         
-        function onTargetsChanged(self, src, event)
-            global PM;
+        function onTargetsChanged(self, osd, event)
             self.server.updateTargets(savejson([], ...
-                struct('targetRects', PM.osd.targetRects, ...
-                'targetIsOval', PM.osd.targetIsOval)));
+                struct('targetRects', osd.targetRects, ...
+                'targetIsOval', osd.targetIsOval)));
         end
         
-        function onStatusChanged(self, src, event)
-            global PM;
-            self.server.updateStatus(savejson([], ...
-                struct('state', PM.osd.state, ...
-                'performance', PM.osd.performance, ...
-                'keyInfo', PM.osd.keyInfo)));
+        function onStatusChanged(self, osd, event)
+            status = struct('state', osd.state, ...
+                'performance', osd.performance, ...
+                'keyInfo', osd.keyInfo);
+            self.server.updateStatus(savejson([], status));
         end
         
         function onScreenCommand(self, src, event)
@@ -81,6 +79,7 @@ classdef PMServer < handle
         end
         
         function updateEyePosition(self)
+            global CONFIG;
             t = GetSecs();
             if t-self.lastEyePositionUpdateTime > 1/self.MAX_UPDATE_RATE
                 self.lastEyePositionUpdateTime = t;

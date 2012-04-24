@@ -1,3 +1,6 @@
+function example_five_dot_config()
+PMSetup();
+global CONFIG;
 CONFIG = struct();
 % # of the main (task) display
 CONFIG.mainDisplay = 2;

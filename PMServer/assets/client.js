@@ -167,11 +167,6 @@ PTB.prototype = {
 	}
 };
 
-var OSD = function(div) {
-};
-OSD.prototype.update = function(info) {
-};
-
 var Client = function(canvas) {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
@@ -217,14 +212,8 @@ Client.prototype = {
 	 * Updates targets plotted over the canvas
 	 */
 	"TRG":function(payload) {
-		if(!payload.targetRects) return;
-		if(typeof payload.targetRects[0] !== "object") {
-			payload.targetRects = [payload.targetRects];
-		}
-		for(var i=0; i<payload.targetRects.length; i++) {
-			this.ptb[payload.targetIsOval[i] ? "FrameOval" : "FrameRect"]([255, 255, 0, 1],
-				payload.targetRects[i]);
-		}
+		this._lastTargets = payload;
+		this._drawTargets();
 	},
 	
 	/**
@@ -236,6 +225,7 @@ Client.prototype = {
 		if(!(directives instanceof Array)) directives = [directives];
 		for(var i=0; i<directives.length; i++) {
 			var directive = directives[i];
+			if(!(directive.arguments instanceof Array)) directive.arguments = [directive.arguments];
 			if(directive.command === "DrawTexture") {
 				this.ctx.save();
 				var textureIndex = typeof directive.arguments[0] === "object" ? directive.arguments[0][0] : directive.arguments[0],
@@ -246,11 +236,7 @@ Client.prototype = {
 					globalAlpha = directive.arguments[5];
 
 				
-				try {				
-					if(!destinationRect) {
-						var nw = texture.naturalWidth, nh = texture.naturalHeight;
-						destinationRect = [cw/2-nw/2, ch/2-nh/2, cw/2+nw/2, cw/2+nh/2];
-					}
+				try {
 					if(rotationAngle) this.ctx.rotate(rotationAngle*Math.PI/180);
 					if(globalAlpha) this.ctx.globalAlpha = globalAlpha;
 					
@@ -260,10 +246,13 @@ Client.prototype = {
 							destinationRect[0], destinationRect[1],
 							destinationRect[2]-destinationRect[0],
 							destinationRect[3]-destinationRect[1]);
-					} else {
+					} else if(destinationRect) {
 						this.ctx.drawImage(texture, destinationRect[0], destinationRect[1],
 							destinationRect[2]-destinationRect[0],
 							destinationRect[3]-destinationRect[1]);
+					} else {
+						var nw = texture.naturalWidth, nh = texture.naturalHeight;
+						this.ctx.drawImage(texture, cw/2-nw/2, ch/2-nh/2);
 					}
 				} finally {
 					this.ctx.restore();
@@ -272,6 +261,7 @@ Client.prototype = {
 				this.ptb[directive.command].apply(this.ptb, directive.arguments);
 			}
 		}
+		this._drawTargets();
 	},
 	
 	/**
@@ -279,15 +269,15 @@ Client.prototype = {
 	 */
 	"EYE":function(pos) {
 		this.ctx.save();
-		if(this._lastEyePosition) {
-			this.ctx.fillColor = "rgb(0, 0, 255)";
-			this.ctx.fillRect(this._lastEyePosition[0]-2, this._lastEyePosition[1]-2,
-				this._lastEyePosition[0]+2, this._lastEyePosition[1]+2);
+		if(this._lastEyePosition
+				&& (this._lastEyePosition[0] !== pos[0] || this._lastEyePosition[1] !== pos[1])) {
+			this.ctx.fillStyle = "rgb(0, 0, 255)";
+			this.ctx.fillRect(this._lastEyePosition[0]-2, this._lastEyePosition[1]-2, 4, 4);
 		}
 		if(pos[0]-2 >= 0 && pos[1]-2 >= 0 && pos[0]+2 < this.canvas.width &&
 				pos[1]+2 < this.canvas.height) {
-			this.ctx.fillColor = "rgb(255, 0, 0)";
-			this.ctx.fillRect(pos[0]-2, pos[1]-2, pos[0]+2, pos[1]+2);
+			this.ctx.fillStyle = "rgb(255, 0, 0)";
+			this.ctx.fillRect(pos[0]-2, pos[1]-2, 4, 4);
 			this._lastEyePosition = pos;
 		}
 		this.ctx.restore();
@@ -324,6 +314,17 @@ Client.prototype = {
 				audio.mozWriteAudio(samples);
 				if(!(--payload.reps)) window.clearInterval(interval);
 			}, (payload.between+payload.time)*1000);
+	},
+	
+	"_drawTargets":function() {
+		if(!this._lastTargets || !this._lastTargets.targetRects) return;
+		if(typeof this._lastTargets.targetRects[0] !== "object") {
+			this._lastTargets.targetRects = [this._lastTargets.targetRects];
+		}
+		for(var i=0; i<this._lastTargets.targetRects.length; i++) {
+			var isOval = this._lastTargets.targetIsOval[i] && (typeof this._lastTargets.targetIsOval[i] !== "object" || this._lastTargets.targetIsOval[i][0]);
+			this.ptb[isOval ? "FrameOval" : "FrameRect"]([255, 255, 0, 1],
+				this._lastTargets.targetRects[i]);
 		}
 	}
 };
@@ -333,7 +334,7 @@ window.addEventListener("DOMContentLoaded", function(event) {
 	canvas.width = CONFIG.displaySize[0];
 	canvas.height = CONFIG.displaySize[1];
 	canvas.id = "pmcanvas";
-	document.body.appendChild(canvas);
+	document.getElementById("canvas-container").appendChild(canvas);
 	document.getElementById("osd").style.height = CONFIG.OSDHeight/CONFIG.displaySize[1]*100+"%";
 	
 	var client = new Client(canvas);
