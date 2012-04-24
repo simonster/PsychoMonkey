@@ -191,7 +191,7 @@ Client.prototype = {
 		}
 		for(var i in info.keyInfo) {
 			var str = i;
-			for(var j=0; j<longestKey; j++) str += " ";
+			while(str.length < longestKey) str += " ";
 			str += " - "+info.keyInfo[i];
 			keyInfoStrings.push(str);
 		}
