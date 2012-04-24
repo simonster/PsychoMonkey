@@ -21,11 +21,13 @@ public class PMTextureHandler implements HttpHandler {
 			URI uri = exchange.getRequestURI();
 			String imageName = uri.getPath().substring(9);
 			String imageSuffix = imageName.substring(imageName.length()-4);
+			System.out.println("Image suffix is "+imageSuffix);
 			if(imageSuffix != ".png") {
 				exchange.sendResponseHeaders(404, -1);
 				return;
 			}
 			String imageBaseName = imageName.substring(0, imageName.length()-4);
+			System.out.println("Image basename is "+imageBaseName);
 			
 			// Get the texture from the texture hash map
 			int textureIndex = 0;
