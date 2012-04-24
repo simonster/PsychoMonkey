@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import javax.imageio.ImageIO;
 
@@ -34,6 +35,7 @@ public class PMServer extends WebSocketServer {
 	public PMServer(String configJson) throws IOException {
 		// Start web socket server
 		super(new InetSocketAddress(WS_PORT));
+		clientSockets = new CopyOnWriteArraySet<WebSocket>();
 		
 		// Start HTTP server
 		HttpServer server = HttpServer.create(new InetSocketAddress(HTTP_PORT), -1);
@@ -123,7 +125,7 @@ public class PMServer extends WebSocketServer {
 	 * @param imageData Texture contents as an array
 	 * @throws IOException 
 	 */
-	void addTexture(int textureIndex, byte imageData[][][]) throws IOException {
+	public void addTexture(int textureIndex, byte imageData[][][]) throws IOException {
 		int width = imageData[0].length;
 		int height = imageData.length;
 		
@@ -160,7 +162,7 @@ public class PMServer extends WebSocketServer {
 	 * Removes a texture from the server store
 	 * @param textureIndex
 	 */
-	void removeTexture(int textureIndex) {
+	public void removeTexture(int textureIndex) {
 		textureHandler.textures.remove(textureIndex);
 	}
 	
