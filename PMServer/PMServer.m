@@ -40,6 +40,7 @@ classdef PMServer < handle
             addlistener(PM.osd, 'targetsChanged', @self.onTargetsChanged);
             addlistener(PM.osd, 'statusChanged', @self.onStatusChanged);
             addlistener(PM.screenManager, 'screenCommand', @self.onScreenCommand);
+            addlistener(PM.daq, 'juice', @self.onJuice);
             PM.eventLoop{end+1} = @self.updateEyePosition;
         end
         
@@ -67,6 +68,14 @@ classdef PMServer < handle
                 self.drawCommands{end+1} = struct('command', event.command, ...
                     'arguments', {event.arguments});
             end
+        end
+        
+        function onJuice(self, src, event)
+            global PM;
+            self.server.juiceGiven(savejson([], ...
+                struct('time', event.time, ...
+                'between', event.between, ...
+                'reps', event.reps)));
         end
         
         function updateEyePosition(self)

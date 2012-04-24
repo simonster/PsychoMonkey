@@ -121,6 +121,13 @@ public class PMServer extends WebSocketServer {
 	}
 	
 	/**
+	 * Sends a message notifying that juice was given
+	 */
+	public void updateEyePosition(String data) {
+		broadcastMessage("JCE: "+data);
+	}
+	
+	/**
 	 * Converts a texture to a PNG and puts it on in the server store
 	 * @param textureIndex Index of the texture
 	 * @param imageData Texture contents as an array

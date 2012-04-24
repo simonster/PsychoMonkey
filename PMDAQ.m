@@ -40,6 +40,10 @@ classdef PMDAQ < handle
         channels;
     end
     
+    events
+        juice
+    end
+    
     methods
         function self = PMDAQ()
             global CONFIG;
@@ -99,6 +103,7 @@ classdef PMDAQ < handle
                 reps = 1;
             end
             
+			notify(self, 'juice', PMEventDataJuice(time, between, reps));
             for i=1:reps
                 putvalue(self.dio.Line(1), 1);
                 PMSelect(PMEvTimer(GetSecs()+time));

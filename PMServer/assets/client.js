@@ -298,7 +298,25 @@ Client.prototype = {
 		}
 	},
 	
-	"_drawTargets":function () {
+	/**
+	 * Beeps for juice
+	 * TODO: use a visual indicator instead/in addition
+	 */
+	"JCE":function(payload) {
+		var audio = new Audio();
+		if(audio.mozSetup) {
+			audio.mozSetup(1, 44100);
+			var samples = new Float32Array(Math.round(44100*payload.time));
+			for(var i=0, l=samples.length; i<l; i++) {
+				samples[i] = Math.sin(i*2*Math.PI/44100*3000);
+			}
+			var interval = window.setInterval(function() {
+				audio.mozWriteAudio(samples);
+				if(!(--payload.reps)) window.clearInterval(interval);
+			}, (payload.between+payload.time)*1000);
+	},
+	
+	"_drawTargets":function() {
 		if(!this._lastTargets || !this._lastTargets.targetRects) return;
 		if(typeof this._lastTargets.targetRects[0] !== "object") {
 			this._lastTargets.targetRects = [this._lastTargets.targetRects];
