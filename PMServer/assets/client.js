@@ -226,6 +226,7 @@ Client.prototype = {
 	 */
 	"DRW":function(directives) {
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		if(!(directives instanceof Array)) directives = [directives];
 		for(var i=0; i<directives.length; i++) {
 			var directive = directives[i];
 			if(directive.command === "DrawTexture") {

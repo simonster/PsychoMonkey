@@ -73,7 +73,8 @@ classdef PMServer < handle
         
         function updateEyePosition(self)
             t = GetSecs();
-            if self.lastEyePositionUpdateTime-t > 1/self.MAX_UPDATE_RATE
+            if t-self.lastEyePositionUpdateTime > 1/self.MAX_UPDATE_RATE
+                self.lastEyePositionUpdateTime = t;
                 eyePosition = CONFIG.eyeTracker.getEyePosition();
                 self.server.updateEyePosition(eyePosition(1), eyePosition(2));
             end

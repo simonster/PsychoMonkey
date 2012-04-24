@@ -68,9 +68,9 @@ public class PMServer extends WebSocketServer {
 		clientSockets.add(socket);
 		try {
 			if(osdMessage != "") socket.send(osdMessage);
+			if(textureMessage != "") socket.send(textureMessage);
 			if(drawMessage != "") socket.send(drawMessage);
 			if(targetMessage != "") socket.send(targetMessage);
-			if(textureMessage != "") socket.send(textureMessage);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
