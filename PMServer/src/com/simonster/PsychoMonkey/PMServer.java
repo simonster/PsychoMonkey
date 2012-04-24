@@ -117,6 +117,7 @@ public class PMServer extends WebSocketServer {
 	 * Updates the eye position shown
 	 */
 	public void updateEyePosition(int x, int y) {
+		System.out.println("Updating eye position");
 		broadcastMessage("EYE: ["+x+","+y+"]");
 	}
 	
