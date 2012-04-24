@@ -18,7 +18,7 @@ classdef PMServer < handle
 % PMServer Server for observing paradigms over a network
     properties(Constant = true)
         % Maximum rate at which updates will be sent to the socket, in Hz
-        MAX_UPDATE_RATE = 10;
+        MAX_UPDATE_RATE = 30;
     end
     
     properties(Access = private)
