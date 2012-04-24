@@ -72,6 +72,7 @@ classdef PMServer < handle
         end
         
         function updateEyePosition(self)
+            global CONFIG;
             t = GetSecs();
             if t-self.lastEyePositionUpdateTime > 1/self.MAX_UPDATE_RATE
                 self.lastEyePositionUpdateTime = t;
