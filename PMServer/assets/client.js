@@ -151,15 +151,14 @@ PTB.prototype = {
 		return [rect];
 	},
 	"_colorToStyle":function(color) {
-		var style;
 		if(color === null || color === undefined) {
-			style = "white";
+			return "white";
 		} else if(typeof color !== "object") {
-			style = "rgb("+color+", "+color+", "+color+")";
+			return "rgb("+color+", "+color+", "+color+")";
 		} else if(color.length === 3) {
-			style = "rgb("+color[0]+", "+color[1]+", "+color[2]+")";
+			return "rgb("+color[0]+", "+color[1]+", "+color[2]+")";
 		} else if(color.length === 4) {
-			style = "rgba("+color[0]+", "+color[1]+", "+color[2]+", "+color[3]+")";
+			return "rgba("+color[0]+", "+color[1]+", "+color[2]+", "+color[3]+")";
 		} else {
 			throw new Error("Invalid color");
 		}

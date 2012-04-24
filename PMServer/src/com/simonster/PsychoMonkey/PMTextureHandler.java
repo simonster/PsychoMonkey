@@ -22,7 +22,7 @@ public class PMTextureHandler implements HttpHandler {
 			String imageName = uri.getPath().substring(9);
 			String imageSuffix = imageName.substring(imageName.length()-4);
 			System.out.println("Image suffix is "+imageSuffix);
-			if(imageSuffix.equals(".png")) {
+			if(!imageSuffix.equals(".png")) {
 				exchange.sendResponseHeaders(404, -1);
 				return;
 			}
