@@ -250,10 +250,10 @@ Client.prototype = {
 			};
 		} else {
 			var passwordInput = document.getElementById("password-input");
+			passwordInput.focus();
 			passwordInput.value = "";
 			passwordInput.style.background = "red";
 			passwordInput.style.color = "black";
-			passwordInput.focus();
 		}
 	},
 	

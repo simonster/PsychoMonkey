@@ -32,6 +32,7 @@ public class PMServer extends WebSocketServer {
 	private String password;
 	private PMConfigHandler configHandler;
 	private PMTextureHandler textureHandler;
+	private HttpServer httpServer;
 	
 	public PMServer(String configJson, String password) throws IOException {
 		// Start web socket server
@@ -41,14 +42,14 @@ public class PMServer extends WebSocketServer {
 		this.start();
 		
 		// Start HTTP server
-		HttpServer server = HttpServer.create(new InetSocketAddress(HTTP_PORT), -1);
+		httpServer = HttpServer.create(new InetSocketAddress(HTTP_PORT), -1);
 		textureHandler = new PMTextureHandler();
 		configHandler = new PMConfigHandler(configJson);
-		server.createContext("/texture/", textureHandler);
-		server.createContext("/config.js", configHandler);
-		server.createContext("/", new PMStaticHandler());
-		server.setExecutor(null);
-		server.start();
+		httpServer.createContext("/texture/", textureHandler);
+		httpServer.createContext("/config.js", configHandler);
+		httpServer.createContext("/", new PMStaticHandler());
+		httpServer.setExecutor(null);
+		httpServer.start();
 		
 		this.password = password;
 	}
@@ -99,7 +100,7 @@ public class PMServer extends WebSocketServer {
 	 */
 	public String[] getPressedKeys() {
 		if(!keysPressed.isEmpty()) {
-			String[] keysPressedArray = (String[]) keysPressed.toArray();
+			String[] keysPressedArray = keysPressed.toArray(new String[0]);
 			keysPressed.clear();
 			return keysPressedArray;
 		}
@@ -204,4 +205,12 @@ public class PMServer extends WebSocketServer {
 			}
 		}
 	}
+	
+	/**
+	 * Stops the server
+	 */
+	public void stop() throws IOException {
+		super.stop();
+		httpServer.stop(0);
+	 }
 }
