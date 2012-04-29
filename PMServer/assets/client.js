@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+var canvas;
 
 var PTB = function(context) {
 	this.ctx = context;
@@ -168,13 +169,6 @@ PTB.prototype = {
 };
 
 var Client = function() {
-	var canvas = document.createElement("canvas");
-	canvas.width = CONFIG.displaySize[0];
-	canvas.height = CONFIG.displaySize[1];
-	canvas.id = "pmcanvas";
-	document.getElementById("canvas-container").appendChild(canvas);
-	document.getElementById("osd").style.height = CONFIG.OSDHeight/CONFIG.displaySize[1]*100+"%";
-	
 	var ws = this.ws = new WebSocket("ws://"+window.location.hostname+":20557/"),
 		client = this;
 	ws.onmessage = function(event) {
@@ -214,6 +208,9 @@ Client.prototype = {
 				var key;
 				if(event.charCode) {
 					key = String.fromCharCode(event.charCode).toUpperCase();
+					if(key === " ") {
+						key = "SPACE";
+					}
 				} else if(event.keyCode) {
 					var keyCode = event.keyCode;
 					switch (event.keyCode) {
@@ -246,7 +243,10 @@ Client.prototype = {
 					}
 				}
 				
-				if(key) ws.send("KEY: "+key);
+				if(key) {
+					event.preventDefault();
+					ws.send("KEY: "+key);
+				}
 			};
 		} else {
 			var passwordInput = document.getElementById("password-input");
@@ -254,6 +254,7 @@ Client.prototype = {
 			passwordInput.value = "";
 			passwordInput.style.background = "red";
 			passwordInput.style.color = "black";
+			this.ws.close();
 		}
 	},
 	
@@ -437,4 +438,11 @@ function onPassword() {
 
 window.addEventListener("DOMContentLoaded", function(event) {	
 	document.getElementById("password-input").focus();
+	
+	canvas = document.createElement("canvas");
+	canvas.width = CONFIG.displaySize[0];
+	canvas.height = CONFIG.displaySize[1];
+	canvas.id = "pmcanvas";
+	document.getElementById("canvas-container").appendChild(canvas);
+	document.getElementById("osd").style.height = CONFIG.OSDHeight/CONFIG.displaySize[1]*100+"%";
 }, false);

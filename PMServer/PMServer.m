@@ -89,6 +89,13 @@ classdef PMServer < handle
         
         function keys = getPressedKeys(self)
             keys = self.server.getPressedKeys();
+            if ~isempty(keys)
+                keys = cell(keys);
+            end
+        end
+        
+        function shutdown(self)
+            self.server.stop();
         end
     end
 end
