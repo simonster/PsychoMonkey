@@ -168,6 +168,68 @@ PTB.prototype = {
 };
 
 var Client = function(canvas) {
+	var canvas = document.createElement("canvas");
+	canvas.width = CONFIG.displaySize[0];
+	canvas.height = CONFIG.displaySize[1];
+	canvas.id = "pmcanvas";
+	document.getElementById("canvas-container").appendChild(canvas);
+	document.getElementById("osd").style.height = CONFIG.OSDHeight/CONFIG.displaySize[1]*100+"%";
+	
+	var ws = new WebSocket("ws://"+window.location.hostname+":20557/"),
+		client = this;
+	ws.onmessage = function(event) {
+		var data = event.data,
+			code = data.substr(0, 3),
+			payload = JSON.parse(data.substr(5));
+		console.log(data);
+		if(code in client) {
+			client[code](payload);
+		} else {
+			console.error("Could not parse message: "+data);
+		}
+	};
+	
+	ws.send("PWD: "+document.getElementById("password-input").value);
+	
+	document.onkeypress = function(event) {
+		var key;
+		if(event.charCode) {
+			key = event.charCode.toUpperCase();
+		} else if(event.keyCode) {
+			var keyCode = event.keyCode;
+			switch (event.keyCode) {
+				case event.DOM_VK_BACK_SPACE: 
+				case event.DOM_VK_DELETE:
+					key = "DELETE"; break;
+				case event.DOM_VK_TAB:
+					key = "TAB"; break;
+				case event.DOM_VK_RETURN:
+				case event.DOM_VK_ENTER:
+					key = "RETURN"; break;
+				case event.DOM_VK_ESCAPE:
+					key = "ESCAPE"; break;
+				case event.DOM_VK_PAGE_UP:
+					key = "PAGEUP"; break;
+				case event.DOM_VK_PAGE_DOWN:
+					key = "PAGEDOWN"; break;
+				case event.DOM_VK_END:
+					key = "END"; break;
+				case event.DOM_VK_HOME:
+					key = "HOME"; break;
+				case event.DOM_VK_LEFT:
+					key = "LEFTARROW"; break;
+				case event.DOM_VK_UP:
+					key = "UPARROW"; break;
+				case event.DOM_VK_RIGHT:
+					key = "RIGHTARROW"; break;
+				case event.DOM_VK_DOWN:
+					key = "DOWNARROW"; break;
+			}
+		}
+		
+		if(key) ws.send("KEY: "+key);
+	};
+	
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
 	this.ptb = new PTB(this.ctx);
@@ -175,6 +237,21 @@ var Client = function(canvas) {
 	this._textures = {};
 }
 Client.prototype = {
+	/**
+	 * Responds to password message
+	 */
+	"PWD":function(accepted) {
+		if(accepted) {
+			document.getElementById("password").style.display = "none";
+		} else {
+			var passwordInput = document.getElementById("password-input");
+			passwordInput.value = "";
+			passwordInput.style.background = "red";
+			passwordInput.style.color = "black";
+			passwordInput.focus();
+		}
+	},
+	
 	/**
 	 * Updates the on-screen display
 	 */
@@ -349,65 +426,6 @@ Client.prototype = {
 	}
 };
 
-window.addEventListener("DOMContentLoaded", function(event) {
-	var canvas = document.createElement("canvas");
-	canvas.width = CONFIG.displaySize[0];
-	canvas.height = CONFIG.displaySize[1];
-	canvas.id = "pmcanvas";
-	document.getElementById("canvas-container").appendChild(canvas);
-	document.getElementById("osd").style.height = CONFIG.OSDHeight/CONFIG.displaySize[1]*100+"%";
-	
-	var client = new Client(canvas);
-	
-	var ws = new WebSocket("ws://"+window.location.hostname+":20557/");
-	ws.onmessage = function(event) {
-		var data = event.data,
-			code = data.substr(0, 3),
-			payload = JSON.parse(data.substr(5));
-		console.log(data);
-		if(code in client) {
-			client[code](payload);
-		} else {
-			console.error("Could not parse message: "+data);
-		}
-	};
-	
-	document.onkeypress = function(event) {
-		var key;
-		if(event.charCode) {
-			key = event.charCode.toUpperCase();
-		} else if(event.keyCode) {
-			var keyCode = event.keyCode;
-			switch (event.keyCode) {
-				case event.DOM_VK_BACK_SPACE: 
-				case event.DOM_VK_DELETE:
-					key = "DELETE"; break;
-				case event.DOM_VK_TAB:
-					key = "TAB"; break;
-				case event.DOM_VK_RETURN:
-				case event.DOM_VK_ENTER:
-					key = "RETURN"; break;
-				case event.DOM_VK_ESCAPE:
-					key = "ESCAPE"; break;
-				case event.DOM_VK_PAGE_UP:
-					key = "PAGEUP"; break;
-				case event.DOM_VK_PAGE_DOWN:
-					key = "PAGEDOWN"; break;
-				case event.DOM_VK_END:
-					key = "END"; break;
-				case event.DOM_VK_HOME:
-					key = "HOME"; break;
-				case event.DOM_VK_LEFT:
-					key = "LEFTARROW"; break;
-				case event.DOM_VK_UP:
-					key = "UPARROW"; break;
-				case event.DOM_VK_RIGHT:
-					key = "RIGHTARROW"; break;
-				case event.DOM_VK_DOWN:
-					key = "DOWNARROW"; break;
-			}
-		}
-		
-		if(key) ws.send("KEY: "+key);
-	};
+window.addEventListener("DOMContentLoaded", function(event) {	
+	document.getElementById("password-input").focus();
 }, false);
