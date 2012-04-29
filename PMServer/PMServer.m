@@ -34,7 +34,7 @@ classdef PMServer < handle
             % Initialize server
             import com.simonster.PsychoMonkey.PMServer;
             self.server = PMServer(savejson([], ...
-                rmfield(CONFIG, 'eyeTracker')));
+                rmfield(CONFIG, {'eyeTracker', 'password'})), CONFIG.password);
             
             % Hook into OSD and event loop
             addlistener(PM.osd, 'targetsChanged', @self.onTargetsChanged);
@@ -85,6 +85,10 @@ classdef PMServer < handle
                 eyePosition = CONFIG.eyeTracker.getEyePosition();
                 self.server.updateEyePosition(eyePosition(1), eyePosition(2));
             end
+        end
+        
+        function keys = getPressedKeys(self)
+            keys = self.server.getPressedKeys();
         end
     end
 end

@@ -22,6 +22,7 @@ global CONFIG PM;
 if isempty(CONFIG)
     error('Configuration not loaded');
 end
+KbName('UnifyKeyNames');
 PM = struct();
 PM.eventLoop = {};
 PM.daq = PMDAQ();
