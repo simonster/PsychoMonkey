@@ -72,6 +72,7 @@ public class PMServer extends WebSocketServer {
 				if(message.substring(5).equals(this.password)) {
 					clientSockets.add(socket);
 					try {
+						socket.send("PWD: true");
 						if(osdMessage != "") socket.send(osdMessage);
 						if(textureMessage != "") socket.send(textureMessage);
 						if(drawMessage != "") socket.send(drawMessage);
@@ -81,7 +82,7 @@ public class PMServer extends WebSocketServer {
 					}
 				} else {
 					try {
-						socket.send("MSG: Incorrect password");
+						socket.send("PWD: false");
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
