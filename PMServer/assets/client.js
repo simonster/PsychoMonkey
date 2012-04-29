@@ -314,6 +314,7 @@ Client.prototype = {
 				audio.mozWriteAudio(samples);
 				if(!(--payload.reps)) window.clearInterval(interval);
 			}, (payload.between+payload.time)*1000);
+		}
 	},
 	
 	"_drawTargets":function() {

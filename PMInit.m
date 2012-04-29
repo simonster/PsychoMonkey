@@ -30,6 +30,6 @@ PM.osd = PMOSD();
 if isfield(CONFIG, 'eyeTracker')
     CONFIG.eyeTracker.init();
 end
-if isfield(CONFIG, 'server')
+if isfield(CONFIG, 'server') && CONFIG.server
     PM.server = PMServer();
 end
