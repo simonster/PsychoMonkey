@@ -103,7 +103,7 @@ classdef PMEyeLink < handle
             nSamples = size(samples, 2);
             bufLength = self.eyeDataBufferLength;
             maxBufferLength = size(self.eyeDataBuffer, 2);
-            if size(samples, 2) > maxBufferLength
+            if size(samples, 2) >= maxBufferLength
                 % If we have read more data than the buffer, clear it
                 self.eyeDataBuffer = samples(rows, end-maxBufferLength+1:end);
                 self.eyeDataBufferLength = maxBufferLength;
@@ -219,6 +219,24 @@ classdef PMEyeLink < handle
                     end
                 end
             end
+        end
+        
+        function correctDrift(self, correctX, correctY, numberOfSamples)
+        % CORRECTDRIFT Corrects drift using known pupil position.
+        %   OBJ.CORRECTDRIFT(CORRECTX, CORRECTY) assumes that the subject
+        %   is fixating on an object at pixel coordinates
+        %   (CORRECTX, CORRECTY) and corrects the eye signal to compensate
+        %   using the median of the previous 50 samples of eye data.
+        %   OBJ.CORRECTDRIFT(CORRECTX, CORRECTY, NUMBEROFSAMPLES) specifies
+        %   the median of the previous NUMBEROFSAMPLES samples should be
+        %   used to compute the offset.
+            if ~exist('numberOfSamples', 'var')
+                numberOfSamples = 50;
+            end
+            samples = self.getEyePosition(numberOfSamples);
+            offset = round([correctX correctY] - median(samples));
+            Eyelink('command', 'drift_correction %ld %ld %ld %ld', ...
+                offset(1), offset(2), correctX, correctY);
         end
         
         function onTargetsChanged(self, osd, event)
