@@ -76,12 +76,11 @@ body {
 </head>
 <body>
 <div id="password">
-	<p>Password:
-		<form>
-			<input type="password" size="20" id="password-input"/>
-			<input type="submit" value="OK" id="password-submit" onclick="onPassword()"/>
-		</form>
-	</p>
+	Password:
+	<form onsubmit="event.preventDefault(); onPassword();">
+		<input type="password" size="20" id="password-input"/>
+		<input type="submit" value="OK" id="password-submit"/>
+	</form>
 </div>
 <div id="osd">
 	<div id="osd-state">Loading</div>

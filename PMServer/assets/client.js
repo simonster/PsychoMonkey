@@ -167,7 +167,7 @@ PTB.prototype = {
 	}
 };
 
-var Client = function(canvas) {
+var Client = function() {
 	var canvas = document.createElement("canvas");
 	canvas.width = CONFIG.displaySize[0];
 	canvas.height = CONFIG.displaySize[1];
@@ -175,7 +175,7 @@ var Client = function(canvas) {
 	document.getElementById("canvas-container").appendChild(canvas);
 	document.getElementById("osd").style.height = CONFIG.OSDHeight/CONFIG.displaySize[1]*100+"%";
 	
-	var ws = new WebSocket("ws://"+window.location.hostname+":20557/"),
+	var ws = this.ws = new WebSocket("ws://"+window.location.hostname+":20557/"),
 		client = this;
 	ws.onmessage = function(event) {
 		var data = event.data,
@@ -188,46 +188,12 @@ var Client = function(canvas) {
 			console.error("Could not parse message: "+data);
 		}
 	};
-	
-	ws.send("PWD: "+document.getElementById("password-input").value);
-	
-	document.onkeypress = function(event) {
-		var key;
-		if(event.charCode) {
-			key = event.charCode.toUpperCase();
-		} else if(event.keyCode) {
-			var keyCode = event.keyCode;
-			switch (event.keyCode) {
-				case event.DOM_VK_BACK_SPACE: 
-				case event.DOM_VK_DELETE:
-					key = "DELETE"; break;
-				case event.DOM_VK_TAB:
-					key = "TAB"; break;
-				case event.DOM_VK_RETURN:
-				case event.DOM_VK_ENTER:
-					key = "RETURN"; break;
-				case event.DOM_VK_ESCAPE:
-					key = "ESCAPE"; break;
-				case event.DOM_VK_PAGE_UP:
-					key = "PAGEUP"; break;
-				case event.DOM_VK_PAGE_DOWN:
-					key = "PAGEDOWN"; break;
-				case event.DOM_VK_END:
-					key = "END"; break;
-				case event.DOM_VK_HOME:
-					key = "HOME"; break;
-				case event.DOM_VK_LEFT:
-					key = "LEFTARROW"; break;
-				case event.DOM_VK_UP:
-					key = "UPARROW"; break;
-				case event.DOM_VK_RIGHT:
-					key = "RIGHTARROW"; break;
-				case event.DOM_VK_DOWN:
-					key = "DOWNARROW"; break;
-			}
-		}
-		
-		if(key) ws.send("KEY: "+key);
+	ws.onopen = function(event) {
+		ws.send("PWD: "+document.getElementById("password-input").value);
+	};
+	ws.onclose = function() {
+		document.getElementById("password").style.display = "";
+		document.getElementById("password-input").focus();
 	};
 	
 	this.canvas = canvas;
@@ -243,6 +209,45 @@ Client.prototype = {
 	"PWD":function(accepted) {
 		if(accepted) {
 			document.getElementById("password").style.display = "none";
+			var ws = this.ws;
+			document.onkeypress = function(event) {
+				var key;
+				if(event.charCode) {
+					key = String.fromCharCode(event.charCode).toUpperCase();
+				} else if(event.keyCode) {
+					var keyCode = event.keyCode;
+					switch (event.keyCode) {
+						case event.DOM_VK_BACK_SPACE: 
+						case event.DOM_VK_DELETE:
+							key = "DELETE"; break;
+						case event.DOM_VK_TAB:
+							key = "TAB"; break;
+						case event.DOM_VK_RETURN:
+						case event.DOM_VK_ENTER:
+							key = "RETURN"; break;
+						case event.DOM_VK_ESCAPE:
+							key = "ESCAPE"; break;
+						case event.DOM_VK_PAGE_UP:
+							key = "PAGEUP"; break;
+						case event.DOM_VK_PAGE_DOWN:
+							key = "PAGEDOWN"; break;
+						case event.DOM_VK_END:
+							key = "END"; break;
+						case event.DOM_VK_HOME:
+							key = "HOME"; break;
+						case event.DOM_VK_LEFT:
+							key = "LEFTARROW"; break;
+						case event.DOM_VK_UP:
+							key = "UPARROW"; break;
+						case event.DOM_VK_RIGHT:
+							key = "RIGHTARROW"; break;
+						case event.DOM_VK_DOWN:
+							key = "DOWNARROW"; break;
+					}
+				}
+				
+				if(key) ws.send("KEY: "+key);
+			};
 		} else {
 			var passwordInput = document.getElementById("password-input");
 			passwordInput.value = "";
@@ -406,8 +411,8 @@ Client.prototype = {
 		}
 		for(var i=0; i<this._currentTargets.targetRects.length; i++) {
 			var targetRect = this._currentTargets.targetRects[i],
-				targetIsOval = this._currentTargets.targetIsOval[i];
-			if(this._lastTargets) {
+				targetIsOval = this._currentTargets.targetIsOval;
+			if(this._lastTargets && this._lastTargets.targetRects) {
 				// Don't re-plot old targets
 				var contained = false;
 				for(var j=0; j<this._lastTargets.targetRects.length && !contained; j++) {
@@ -425,6 +430,10 @@ Client.prototype = {
 		}
 	}
 };
+
+function onPassword() {
+	new Client();
+}
 
 window.addEventListener("DOMContentLoaded", function(event) {	
 	document.getElementById("password-input").focus();

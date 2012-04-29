@@ -69,10 +69,12 @@ function isFinished = innerFunction()
         end
     elseif isfield(PM, 'server')
         keysPressed = PM.server.getPressedKeys();
-        tf = ismember(keyNames, keysPressed);
-        isFinished = keys(find(tf, 1));
-        if iscell(isFinished)
-            isFinished = isFinished{1};
+        if ~isempty(keysPressed)
+            tf = ismember(keyNames, keysPressed);
+            isFinished = keys(find(tf, 1));
+            if iscell(isFinished)
+                isFinished = isFinished{1};
+            end
         end
     end
 end
