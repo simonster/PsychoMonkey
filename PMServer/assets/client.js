@@ -171,7 +171,7 @@ var Client = function(canvas) {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
 	this.ptb = new PTB(this.ctx);
-	this._lastEyePosition = null;
+	this._lastEyePosition = this._currentTargets = this._lastTargets = null;
 	this._textures = {};
 }
 Client.prototype = {
@@ -212,7 +212,8 @@ Client.prototype = {
 	 * Updates targets plotted over the canvas
 	 */
 	"TRG":function(payload) {
-		this._lastTargets = payload;
+		this._lastTargets = this._currentTargets;
+		this._currentTargets = payload;
 		this._drawTargets();
 	},
 	
@@ -222,6 +223,7 @@ Client.prototype = {
 	"DRW":function(directives) {
 		var cw = this.canvas.width, ch = this.canvas.height;
 		this.ctx.clearRect(0, 0, cw, ch);
+		this._lastTargets = null;
 		if(!(directives instanceof Array)) directives = [directives];
 		for(var i=0; i<directives.length; i++) {
 			var directive = directives[i];
@@ -317,15 +319,32 @@ Client.prototype = {
 		}
 	},
 	
+	/**
+	 * Draws targets to the screen
+	 */
 	"_drawTargets":function() {
-		if(!this._lastTargets || !this._lastTargets.targetRects) return;
-		if(typeof this._lastTargets.targetRects[0] !== "object") {
-			this._lastTargets.targetRects = [this._lastTargets.targetRects];
+		if(!this._currentTargets || !this._currentTargets.targetRects) return;
+		if(typeof this._currentTargets.targetRects[0] !== "object") {
+			this._currentTargets.targetRects = [this._currentTargets.targetRects];
 		}
-		for(var i=0; i<this._lastTargets.targetRects.length; i++) {
-			var isOval = this._lastTargets.targetIsOval[i] && (typeof this._lastTargets.targetIsOval[i] !== "object" || this._lastTargets.targetIsOval[i][0]);
-			this.ptb[isOval ? "FrameOval" : "FrameRect"]([255, 255, 0, 1],
-				this._lastTargets.targetRects[i]);
+		for(var i=0; i<this._currentTargets.targetRects.length; i++) {
+			var targetRect = this._currentTargets.targetRects[i],
+				targetIsOval = this._currentTargets.targetIsOval[i];
+			if(this._lastTargets) {
+				// Don't re-plot old targets
+				var contained = false;
+				for(var j=0; j<this._lastTargets.targetRects.length && !contained; j++) {
+					var lastTargetRect = this._lastTargets.targetRects[j];
+					contained = lastTargetRect[0] !== targetRect[0] ||
+						lastTargetRect[1] !== targetRect[1] ||
+						lastTargetRect[2] !== targetRect[2] ||
+						lastTargetRect[3] !== targetRect[3];
+				}
+				if(contained) continue;
+			}
+			
+			targetIsOval = targetIsOval[i] && (typeof targetIsOval[i] !== "object" || targetIsOval[i][0]);
+			this.ptb[targetIsOval ? "FrameOval" : "FrameRect"]([255, 255, 0, 1], targetRect[i]);
 		}
 	}
 };
@@ -351,5 +370,44 @@ window.addEventListener("DOMContentLoaded", function(event) {
 		} else {
 			console.error("Could not parse message: "+data);
 		}
+	};
+	
+	document.onkeypress = function(event) {
+		var key;
+		if(event.charCode) {
+			key = event.charCode.toUpperCase();
+		} else if(event.keyCode) {
+			var keyCode = event.keyCode;
+			switch (event.keyCode) {
+				case event.DOM_VK_BACK_SPACE: 
+				case event.DOM_VK_DELETE:
+					key = "DELETE"; break;
+				case event.DOM_VK_TAB:
+					key = "TAB"; break;
+				case event.DOM_VK_RETURN:
+				case event.DOM_VK_ENTER:
+					key = "RETURN"; break;
+				case event.DOM_VK_ESCAPE:
+					key = "ESCAPE"; break;
+				case event.DOM_VK_PAGE_UP:
+					key = "PAGEUP"; break;
+				case event.DOM_VK_PAGE_DOWN:
+					key = "PAGEDOWN"; break;
+				case event.DOM_VK_END:
+					key = "END"; break;
+				case event.DOM_VK_HOME:
+					key = "HOME"; break;
+				case event.DOM_VK_LEFT:
+					key = "LEFTARROW"; break;
+				case event.DOM_VK_UP:
+					key = "UPARROW"; break;
+				case event.DOM_VK_RIGHT:
+					key = "RIGHTARROW"; break;
+				case event.DOM_VK_DOWN:
+					key = "DOWNARROW"; break;
+			}
+		}
+		
+		if(key) ws.send("KEY: "+key);
 	};
 }, false);

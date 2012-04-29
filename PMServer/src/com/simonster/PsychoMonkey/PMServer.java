@@ -24,18 +24,20 @@ public class PMServer extends WebSocketServer {
 	static final int HTTP_PORT = 28781;
 	
 	private Set<WebSocket> clientSockets;
+	private Set<String> keysPressed;
 	private volatile String osdMessage = "";
 	private volatile String drawMessage = "";
 	private volatile String targetMessage = "";
 	private volatile String textureMessage = "";
-	private volatile String keysPressed = "";
+	private String password;
 	private PMConfigHandler configHandler;
 	private PMTextureHandler textureHandler;
 	
-	public PMServer(String configJson) throws IOException {
+	public PMServer(String configJson, String password) throws IOException {
 		// Start web socket server
 		super(new InetSocketAddress(WS_PORT));
 		clientSockets = new CopyOnWriteArraySet<WebSocket>();
+		keysPressed = new CopyOnWriteArraySet<String>();
 		this.start();
 		
 		// Start HTTP server
@@ -47,6 +49,8 @@ public class PMServer extends WebSocketServer {
 		server.createContext("/", new PMStaticHandler());
 		server.setExecutor(null);
 		server.start();
+		
+		this.password = password;
 	}
 
 	public void onClose(WebSocket socket, int arg1, String arg2, boolean arg3) {
@@ -58,35 +62,47 @@ public class PMServer extends WebSocketServer {
 	}
 
 	public void onMessage(WebSocket socket, String message) {
-		// TODO Auto-generated method stub
-		if(message.substring(0, 5).equals("KEY: ")) {
-			keysPressed += message.substring(5, 6);
+		String messageCode = message.substring(0, 5);
+		if(clientSockets.contains(socket)) {
+			if(messageCode.equals("KEY: ")) {
+				keysPressed.add(message.substring(5));
+			}
+		} else {
+			if(messageCode.equals("PWD: ")) {
+				if(message.substring(5).equals(this.password)) {
+					clientSockets.add(socket);
+					try {
+						if(osdMessage != "") socket.send(osdMessage);
+						if(textureMessage != "") socket.send(textureMessage);
+						if(drawMessage != "") socket.send(drawMessage);
+						if(targetMessage != "") socket.send(targetMessage);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				} else {
+					try {
+						socket.send("MSG: Incorrect password");
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
 		}
 	}
 
-	public void onOpen(WebSocket socket, ClientHandshake arg1) {
-		clientSockets.add(socket);
-		try {
-			if(osdMessage != "") socket.send(osdMessage);
-			if(textureMessage != "") socket.send(textureMessage);
-			if(drawMessage != "") socket.send(drawMessage);
-			if(targetMessage != "") socket.send(targetMessage);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+	public void onOpen(WebSocket socket, ClientHandshake arg1) {}
 	
 	/**
 	 * Checks whether a key has been pressed on a client.
 	 * @return The key if a key was pressed, otherwise an empty string.
 	 */
-	public String getPressedKeys() {
-		if(keysPressed != "") {
-			String key = keysPressed;
-			keysPressed = "";
-			return key;
+	public String[] getPressedKeys() {
+		if(!keysPressed.isEmpty()) {
+			String[] keysPressedArray = (String[]) keysPressed.toArray();
+			keysPressed.clear();
+			return keysPressedArray;
 		}
-		return "";
+		return null;
 	}
 	
 	/**
