@@ -427,7 +427,7 @@ Client.prototype = {
 			}
 			
 			targetIsOval = targetIsOval[i] && (typeof targetIsOval[i] !== "object" || targetIsOval[i][0]);
-			this.ptb[targetIsOval ? "FrameOval" : "FrameRect"]([255, 255, 0, 1], targetRect[i]);
+			this.ptb[targetIsOval ? "FrameOval" : "FrameRect"]([255, 255, 0, 1], targetRect);
 		}
 	}
 };

@@ -101,18 +101,20 @@ classdef PMEyeLink < handle
             
             % Rotate buffer
             nSamples = size(samples, 2);
-            bufLength = self.eyeDataBufferLength;
-            maxBufferLength = size(self.eyeDataBuffer, 2);
-            if size(samples, 2) >= maxBufferLength
-                % If we have read more data than the buffer, clear it
-                self.eyeDataBuffer = samples(rows, end-maxBufferLength+1:end);
-                self.eyeDataBufferLength = maxBufferLength;
-            else
-                % If the buffer is filled, rotate it
-                self.eyeDataBuffer = [self.eyeDataBuffer(:, nSamples+1:end) samples(rows, :)];
-                self.eyeDataBufferLength = min(maxBufferLength, bufLength + nSamples);
+            if nSamples
+                bufLength = self.eyeDataBufferLength;
+                maxBufferLength = size(self.eyeDataBuffer, 2);
+                if size(samples, 2) >= maxBufferLength
+                    % If we have read more data than the buffer, clear it
+                    self.eyeDataBuffer = samples(rows, end-maxBufferLength+1:end);
+                    self.eyeDataBufferLength = maxBufferLength;
+                else
+                    % If the buffer is filled, rotate it
+                    self.eyeDataBuffer = [self.eyeDataBuffer(:, nSamples+1:end) samples(rows, :)];
+                    self.eyeDataBufferLength = min(maxBufferLength, bufLength + nSamples);
+                end
             end
-            
+
             eyePosition = self.eyeDataBuffer(:, end-min(retrieveSamples, self.eyeDataBufferLength)+1:end)';
         end
         
