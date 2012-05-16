@@ -67,34 +67,29 @@ classdef PMOSD < handle
             global CONFIG;
             
             % If the OSD has changed, then it needs to be redrawn
-            if self.redrawInfo || force
-                % Set text size and color
+            if self.redrawInfo
                 Screen('TextSize', window, 10);
                 Screen('TextColor', window, 255);
+                Screen('Preference', 'TextRenderer', 0);
 
                 % Clear the OSD
                 Screen('FillRect', window, 0, ...
                     [0 0 CONFIG.displaySize(1) CONFIG.OSDHeight]);
-
+                
                 % Display state
                 Screen('DrawText', window, self.state, 0, 0);
-
+                
                 % Display key info
                 if ~isempty(self.keyInfo)
-                    maxX = 0;
                     fields = fieldnames(self.keyInfo);
                     for i=1:length(fields)
-                        x = Screen('DrawText', window, ...
-                            fields{i}, 0, self.textSpacing*(i+1));
-                        maxX = max(x, maxX);
-                    end
-                    for i=1:length(fields)
+                        field = fields{i};
                         Screen('DrawText', window, ...
-                            [' - ' self.keyInfo.(fields{i})], maxX, ...
+                            [field ' - ' self.keyInfo.(field)], 0, ...
                             self.textSpacing*(i+1));
                     end
                 end
-
+                
                 % Display performance data
                 if ~isempty(self.performance)
                     x = 2*round(CONFIG.displaySize(1)/3);

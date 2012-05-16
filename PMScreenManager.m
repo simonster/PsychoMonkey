@@ -19,14 +19,12 @@ classdef PMScreenManager < handle
     properties
         redrawUnderlay = false;
         mainDisplayPtr;
-        offscreenOSDPtr = [];
     end
     
     properties(SetAccess = private, GetAccess = private)
         auxDisplayPtr = [];
         offscreenDupPtr = [];
         auxWaitingForAsyncFlip = false;
-        haveDrawnSinceLastFlip = false;
     end
     
     events
@@ -79,6 +77,8 @@ classdef PMScreenManager < handle
             end
             
             if strcmpi(func, 'CloseAll')
+                while self.auxIsFlipping()
+                end
                 Screen(func);
             elseif strcmpi(func, 'MakeTexture')
                 [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
