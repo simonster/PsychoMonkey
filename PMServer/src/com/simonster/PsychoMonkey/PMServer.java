@@ -168,8 +168,42 @@ public class PMServer extends WebSocketServer {
 				}
 			}
 		}
-		BufferedImage img = new BufferedImage(model, raster, false, null);
 		
+		storeTexture(textureIndex, new BufferedImage(model, raster, false, null));
+	}
+	
+	/**
+	 * Converts a texture to a PNG and puts it on in the server store
+	 * @param textureIndex Index of the texture
+	 * @param imageData Texture contents as an array
+	 * @throws IOException 
+	 */
+	public void addTexture(int textureIndex, byte imageData[][]) throws IOException {
+		int width = imageData[0].length;
+		int height = imageData.length;
+		
+		// Convert imageData to a BufferedImage
+		int[] pixelInformationSize = {8};
+		ComponentColorModel model = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB),  
+				pixelInformationSize, false, false, ComponentColorModel.OPAQUE, 0);  
+		WritableRaster raster = model.createCompatibleWritableRaster(width, height);
+		byte[] bufferBytes = ((DataBufferByte) raster.getDataBuffer()).getData();
+		for(int y=0; y<height; y++) {
+			for(int x=0; x<width; x++) {
+				bufferBytes[y*width+x] = imageData[y][x];
+			}
+		}
+		
+		storeTexture(textureIndex, new BufferedImage(model, raster, false, null));
+	}
+	
+	/**
+	 * Store texture so that it can be saved
+	 * @param textureIndex Texture index to store at
+	 * @param img Image to store
+	 * @throws IOException 
+	 */
+	private void storeTexture(int textureIndex, BufferedImage img) throws IOException {
 		// Convert png to byte array and store it
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		ImageIO.write(img, "png", out);
