@@ -184,7 +184,7 @@ public class PMServer extends WebSocketServer {
 		
 		// Convert imageData to a BufferedImage
 		int[] pixelInformationSize = {8};
-		ComponentColorModel model = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB),  
+		ComponentColorModel model = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_GRAY),  
 				pixelInformationSize, false, false, ComponentColorModel.OPAQUE, 0);  
 		WritableRaster raster = model.createCompatibleWritableRaster(width, height);
 		byte[] bufferBytes = ((DataBufferByte) raster.getDataBuffer()).getData();
