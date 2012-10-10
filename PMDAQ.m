@@ -62,6 +62,12 @@ classdef PMDAQ < handle
             else
                 self.channels.motion = [];
             end
+            if isfield(CONFIG, 'channelBar')
+                self.channels.bar = length(allChannels)+(1:length(CONFIG.channelBar));
+                allChannels = [allChannels CONFIG.channelBar];
+            else
+                self.channels.bar = [];
+            end
             self.nChannels = length(allChannels);
             
             % Initialize analog IO
