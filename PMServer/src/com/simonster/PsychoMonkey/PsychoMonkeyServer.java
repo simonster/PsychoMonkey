@@ -19,7 +19,7 @@ import org.java_websocket.handshake.ClientHandshake;
 
 import com.sun.net.httpserver.HttpServer;
 
-public class PMServer extends WebSocketServer {
+public class PsychoMonkeyServer extends WebSocketServer {
 	static final int WS_PORT = 20557;
 	static final int HTTP_PORT = 28781;
 	
@@ -34,7 +34,7 @@ public class PMServer extends WebSocketServer {
 	private PMTextureHandler textureHandler;
 	private HttpServer httpServer;
 	
-	public PMServer(String configJson, String password) throws IOException {
+	public PsychoMonkeyServer(String configJson, String password) throws IOException {
 		// Start web socket server
 		super(new InetSocketAddress(WS_PORT));
 		clientSockets = new CopyOnWriteArraySet<WebSocket>();
