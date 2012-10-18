@@ -444,5 +444,5 @@ window.addEventListener("DOMContentLoaded", function(event) {
 	canvas.height = CONFIG.displaySize[1];
 	canvas.id = "pmcanvas";
 	document.getElementById("canvas-container").appendChild(canvas);
-	document.getElementById("osd").style.height = CONFIG.OSDHeight/CONFIG.displaySize[1]*100+"%";
+	document.getElementById("osd").style.height = 140/CONFIG.displaySize[1]*100+"%";
 }, false);

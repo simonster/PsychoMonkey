@@ -13,7 +13,7 @@ classdef PMServer < handle
     end
     
     properties(Access = private)
-        server;
+        server = [];
     end
     
     methods
@@ -28,68 +28,73 @@ classdef PMServer < handle
                 'password', 'required' ...
             ));
             
-            % Initialize server
-            eval('import com.simonster.PsychoMonkey.PMServer;')
-            serverConfig = PM.config;
-            serverConfig.displaySize = PM.displaySize;
-            self.server = PMServer(savejson([], serverConfig), self.config.password);
-            
-            % Register listeners
-            lastEyePositionUpdateTime = -1;
-            drawCommands = {};
-            function onTargetsChanged( ~, ~)
-                self.server.updateTargets(savejson([], ...
-                    struct('targetRects', PM.targetRects, ...
-                    'targetIsOval', PM.targetIsOval)));
-            end
-            function onInfoChanged(~, ~)
-                status = struct('state', PM.state, ...
-                    'performance', PM.trialInfo, ...
-                    'keyInfo', PM.keyInfo);
-                self.server.updateStatus(savejson([], status));
-            end
-            function onScreenCommand(~, event)
-                if strcmp(event.command, 'Flip')
-                    self.server.updateDisplay(savejson([], drawCommands, ...
-                        'NoRowBracket', 1));
-                    drawCommands = {};
-                elseif(strcmp(event.command, 'MakeTexture'))
-                    self.server.addTexture(event.textureIndex, event.arguments{1});
-                else
-                    drawCommands{end+1} = struct('command', event.command, ...
-                        'arguments', {event.arguments});
+            function onInitialized(~, ~)
+                % Initialize server
+                serverConfig = PM.config;
+                serverConfig.displaySize = PM.displaySize;
+                self.server = javaObject('com.simonster.PsychoMonkey.PMServer', ...
+                    savejson([], serverConfig), self.config.password);
+
+                % Register listeners
+                lastEyePositionUpdateTime = -1;
+                drawCommands = {};
+                function onTargetsChanged(~, ~)
+                    self.server.updateTargets(savejson([], ...
+                        struct('targetRects', PM.targetRects, ...
+                        'targetIsOval', PM.targetIsOval)));
                 end
-            end
-            function onTick(~, ~)
-                t = GetSecs();
-                if t-lastEyePositionUpdateTime > 1/self.MAX_UPDATE_RATE
-                    lastEyePositionUpdateTime = t;
-                    eyePosition = PM.EyeTracker.getEyePosition();
-                    self.server.updateEyePosition(eyePosition(1), eyePosition(2));
+                function onInfoChanged(~, ~)
+                    status = struct('state', PM.state, ...
+                        'performance', PM.trialInfo, ...
+                        'keyInfo', PM.keyInfo);
+                    self.server.updateStatus(savejson([], status));
                 end
-                
-                keys = self.server.getPressedKeys();
-                if ~isempty(keys)
-                    PM.simulateKeyPress(cell(keys));
+                function onScreenCommand(~, event)
+                    if strcmp(event.command, 'Flip')
+                        self.server.updateDisplay(savejson([], drawCommands, ...
+                            'NoRowBracket', 1));
+                        drawCommands = {};
+                    elseif(strcmp(event.command, 'MakeTexture'))
+                        self.server.addTexture(event.textureIndex, event.arguments{1});
+                    else
+                        drawCommands{end+1} = struct('command', event.command, ...
+                            'arguments', {event.arguments});
+                    end
                 end
+                function onTick(~, ~)
+                    t = GetSecs();
+                    if t-lastEyePositionUpdateTime > 1/self.MAX_UPDATE_RATE
+                        lastEyePositionUpdateTime = t;
+                        eyePosition = PM.EyeTracker.getEyePosition();
+                        self.server.updateEyePosition(eyePosition(1), eyePosition(2));
+                    end
+
+                    keys = self.server.getPressedKeys();
+                    if ~isempty(keys)
+                        PM.simulateKeyPress(cell(keys));
+                    end
+                end
+                function onJuice(~, event)
+                    self.server.juiceGiven(savejson([], ...
+                        struct('time', event.time, ...
+                        'between', event.between, ...
+                        'reps', event.reps)));
+                end
+                addlistener(PM, 'targetsChanged', @onTargetsChanged);
+                addlistener(PM, 'stateChanged', @onInfoChanged);
+                addlistener(PM, 'keyInfoChanged', @onInfoChanged);
+                addlistener(PM, 'trialInfoChanged', @onInfoChanged);
+                addlistener(PM, 'screenCommand', @onScreenCommand);
+                addlistener(PM, 'tick', @onTick);
+                addlistener(PM.DAQ, 'juice', @onJuice);
             end
-            function onJuice(~, event)
-                self.server.juiceGiven(savejson([], ...
-                    struct('time', event.time, ...
-                    'between', event.between, ...
-                    'reps', event.reps)));
-            end
-            addlistener(PM, 'targetsChanged', @onTargetsChanged);
-            addlistener(PM, 'stateChanged', @onInfoChanged);
-            addlistener(PM, 'keyInfoChanged', @onInfoChanged);
-            addlistener(PM, 'trialInfoChanged', @onInfoChanged);
-            addlistener(PM, 'screenCommand', @onScreenCommand);
-            addlistener(PM, 'tick', @onTick);
-            addlistener(PM.DAQ, 'juice', @onJuice);
+            addlistener(PM, 'initialized', @onInitialized);
         end
         
         function delete(self)
-            self.server.stop();
+            if ~isempty(self.server)
+                self.server.stop();
+            end
         end
     end
 end
