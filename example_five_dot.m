@@ -7,7 +7,8 @@ STATE_AUTO = 3;
 %% Initialization
 PM = PsychoMonkey(config.PM_config);
 PMDAQ(PM, config.PMDAQ_config);
-PMEyeLink(PM, config.PMEyeLink_config);
+%PMEyeLink(PM, config.PMEyeLink_config);
+PMEyeSim(PM, [-7 0; 7 0; 0 -7; 0 7; 0 0]);
 PMServer(PM, config.PMServer_config);
 PM.init();
 
