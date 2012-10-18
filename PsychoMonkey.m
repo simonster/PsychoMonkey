@@ -64,6 +64,7 @@ classdef PsychoMonkey < handle
         
         function init(self)
             % INIT  Initialize PsychoMonkey
+            KbName('UnifyKeyNames');
             self.initScreens();
             if ~isempty(self.DAQ)
                 self.DAQ.init();
@@ -72,10 +73,19 @@ classdef PsychoMonkey < handle
                 self.EyeTracker.init();
             end
             notify(self, 'initialized');
+            
+            % There is a stupid PTB bug that requires us to put an oval
+            % (not a square) on the screen on some ATI video cards...
+            self.setState('Initialized');
+            self.screen('FillOval', 0);
+            self.screen('Flip');
+            notify(self, 'tick');
         end
         
         function delete(self)
             % DELETE  Destructor
+            while self.auxIsFlipping()
+            end
             Screen('Close', self.auxDisplayPtr);
             Screen('Close', self.offscreenDupPtr);
             Screen('Close', self.mainDisplayPtr);
@@ -97,11 +107,7 @@ classdef PsychoMonkey < handle
                 self.redrawUnderlay = true;
             end
             
-            if strcmpi(func, 'CloseAll')
-                while self.auxIsFlipping()
-                end
-                Screen(func);
-            elseif strcmpi(func, 'MakeTexture')
+            if strcmpi(func, 'MakeTexture')
                 [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
                 notify(self, 'screenCommand', ...
                     PMEventDataScreenCommand(func, varargin, varargout{1}));
@@ -421,6 +427,7 @@ classdef PsychoMonkey < handle
             % Open main screen
             PsychImaging('PrepareConfiguration');
             PsychImaging('AddTask', 'General', 'UseVirtualFramebuffer');
+            PsychImaging('AddTask', 'General', 'UseFastOffscreenWindows');
             [self.mainDisplayPtr, displayRect] = PsychImaging('OpenWindow', self.config.mainDisplay, ...
                 self.config.backgroundColor);
             self.displaySize = displayRect(3:4)-displayRect(1:2);
@@ -432,6 +439,7 @@ classdef PsychoMonkey < handle
             end
             PsychImaging('PrepareConfiguration');
             PsychImaging('AddTask', 'General', 'UseVirtualFramebuffer');
+            PsychImaging('AddTask', 'General', 'UseFastOffscreenWindows');
             [self.auxDisplayPtr, auxDisplayRect] = PsychImaging('OpenWindow', self.config.auxDisplay, ...
                 self.config.backgroundColor);
             assert(all(self.displaySize == auxDisplayRect(3:4)), ...
@@ -496,8 +504,8 @@ classdef PsychoMonkey < handle
                     % a PTB bug, so we use DrawTexture instead...
                     %Screen('CopyWindow', self.offscreenDupPtr, ...
                     %    self.auxDisplayPtr, [], ...
-                    %    [0 self.OSD_HEIGHTS self.displaySize]);
-                    Screen('DrawTexture', self.auxDisplayPtr, ...
+                    %    [0 self.OSD_HEIGHT self.displaySize]);
+                    Screen('DrawTexture', window, ...
                         self.offscreenDupPtr, [0 self.OSD_HEIGHT self.displaySize], ...
                         [0 self.OSD_HEIGHT self.displaySize]);
                     
@@ -589,7 +597,7 @@ classdef PsychoMonkey < handle
                     if self.config.debug
                         tnew = GetSecs();
                         fprintf('Printed trialInfo in %.3f ms\n', (tnew-t)*1000);
-                        t = tnew;
+                        %t = tnew;
                     end
                 end
                 
