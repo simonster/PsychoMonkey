@@ -1,23 +1,6 @@
-% PsychoMonkey
-% Copyright (C) 2012 Simon Kornblith
-%
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU Affero General Public License as
-% published by the Free Software Foundation, either version 3 of the
-% License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU Affero General Public License for more details.
-% 
-% You should have received a copy of the GNU Affero General Public License
-% along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 classdef PMDAQ < handle
 % PMDAQ DAQ abstraction interface
-%   PMDAQ(AI, ADAPTOR, ID) creates a new DAQ abstraction for the specified
-%   adaptor and device ID
+%   PMDAQ(CONFIG) creates a new DAQ object
     properties(Access = private)
         % A buffer of data that has not been requested, up to 60 seconds
         % long. Rows represent samples; columns represent channels.
@@ -32,68 +15,90 @@ classdef PMDAQ < handle
         % digitalio object
         dio;
         
-        % Total number of channels
-        nChannels;
+        % IDs of channels on the adapter
+        channelIDs = [];
         
         % Struct whose members indicate which channels belong to which
         % components.
         channels;
+        
+        PM;
+    end
+    
+    properties(SetAccess = private, GetAccess = public)
+        % Configuration object
+        config;
+    end
+    
+    properties(Constant)
+        % Amount of time to keep in buffer
+        BUFFER_SECONDS = 60;
     end
     
     events
+        % Fired when giveJuice() is called with a PMEventDataJuice object
         juice
     end
     
     methods
-        function self = PMDAQ()
-            global CONFIG;
-            daqreset;
+        function self = PMDAQ(PM, config)
+            self.config = PM.parseOptions(config, struct(...
+                    'daqAdaptor', 'required', ...
+                    'daqID', 'required', ...
+                    'daqInputType', 'SingleEnded', ...
+                    'analogChannels', struct(), ...
+                    'juiceChannel', [], ...
+                    'analogSampleRate', 1000 ...
+                ));
+            
+            % Initialize channels
             self.channels = struct();
-            allChannels = [];
-            if isfield(CONFIG, 'channelsEye')
-                self.channels.eye = length(allChannels)+(1:length(CONFIG.channelsEye));
-                allChannels = [allChannels CONFIG.channelsEye];
-            else
-                self.channels.eye = [];
+            channelNames = fieldnames(self.config.analogChannels);
+            for i=1:length(channelNames)
+                currentChannelName = channelNames{i};
+                currentChannels = self.config.analogChannels.(currentChannelName);
+                self.channels.(currentChannelName) = length(self.channelIDs)+(1:length(currentChannels));
+                self.channelIDs = [self.channelIDs currentChannels];
             end
-            if isfield(CONFIG, 'channelsMotion')
-                self.channels.motion = length(allChannels)+(1:length(CONFIG.channelsMotion));
-                allChannels = [allChannels CONFIG.channelsMotion];
-            else
-                self.channels.motion = [];
-            end
-            if isfield(CONFIG, 'channelBar')
-                self.channels.bar = length(allChannels)+(1:length(CONFIG.channelBar));
-                allChannels = [allChannels CONFIG.channelBar];
-            else
-                self.channels.bar = [];
-            end
-            self.nChannels = length(allChannels);
+            
+            % Register with PsychoMonkey
+            self.PM = PM;
+            PM.DAQ = self;
+        end
+        
+        function init(self)
+            daqreset;
             
             % Initialize analog IO
-            if ~isempty(allChannels)
-                self.ai = analoginput(CONFIG.daqAdaptor, CONFIG.daqID);
-                addchannel(self.ai, allChannels);
+            if ~isempty(self.channelIDs)
+                self.ai = analoginput(self.config.daqAdaptor, self.config.daqID);
+                addchannel(self.ai, self.channelIDs);
                 
                 assert(setverify(self.ai, 'SampleRate', ...
-                    CONFIG.analogSampleRate) == CONFIG.analogSampleRate, ...
+                    self.config.analogSampleRate) == self.config.analogSampleRate, ...
                     'Specified sample rate not supported');
                 set(self.ai, 'SamplesPerTrigger', Inf);
-                if ~isempty(CONFIG.daqInputType)
+                if ~isempty(self.config.daqInputType)
                     assert(strcmp(setverify(self.ai, 'InputType', ...
-                        CONFIG.daqInputType), CONFIG.daqInputType), ...
+                        self.config.daqInputType), self.config.daqInputType), ...
                         'Specified input type not supported');
                 end
 
                 start(self.ai);
                 
-                self.buffer = zeros(CONFIG.analogSampleRate*60, self.nChannels);
-                self.bufferLength = zeros(1, self.nChannels);
+                self.buffer = zeros(self.config.analogSampleRate*self.BUFFER_SECONDS, length(self.channelIDs));
+                self.bufferLength = zeros(1, length(self.channelIDs));
             end
             
             % Initialize digital IO
-            self.dio = digitalio(CONFIG.daqAdaptor, CONFIG.daqID);
-            addline(self.dio, CONFIG.channelJuice, 'out');
+            if ~isempty(self.config.juiceChannel)
+                self.dio = digitalio(self.config.daqAdaptor, self.config.daqID);
+                addline(self.dio, self.config.juiceChannel, 'out');
+            end
+        end
+        
+        function delete(~)
+            daqreset;
         end
         
         function giveJuice(self, time, between, reps)
@@ -110,30 +115,29 @@ classdef PMDAQ < handle
             end
             
 			notify(self, 'juice', PMEventDataJuice(time, between, reps));
+            PM = self.PM; %#ok<*PROP>
             for i=1:reps
                 putvalue(self.dio.Line(1), 1);
-                PMSelect(PMEvTimer(GetSecs()+time));
+                PM.select(PM.fTimer(GetSecs()+time));
                 putvalue(self.dio.Line(1), 0);
-                PMSelect(PMEvTimer(GetSecs()+between));
+                PM.select(PM.fTimer(GetSecs()+between));
             end
         end
         
-        function data = getData(self, type)
-            % GETDATA Gets all data acquired by the DAQ since last call
-            %   DATA = OBJ.GETDATA('eye') gets eye position data from the
-            %   daq. DATA is a n x 2 matrix, where n is the number of
-            %   samples acquired since last GETDATA('eye') call.
-            %   
-            %   DATA = OBJ.GETDATA('motion') gets eye position data from 
-            %   the DAQ. DATA is a vector of length n.
-            if isfield(self.channels, type)
-                channel = self.channels.(type);
+        function data = getData(self, channelname)
+        % GETDATA Gets all data acquired by the DAQ since last call
+        %   DATA = OBJ.GETDATA(CHANNELNAME) gets eye position data from the
+        %   DAQ. DATA is a m x n matrix, where m is the number of samples 
+        %   acquired since last GETDATA(CHANNELNAME) call and n is the
+        %   number of channels corresponding to CHANNELNAME.
+            if isfield(self.channels, channelname)
+                channel = self.channels.(channelname);
                 if isempty(channel)
-                    error(['Attempted to get ' type ' data, but no ' ...
-                        type ' channel specified']);
+                    error(['Attempted to get ' channelname ' data, but no ' ...
+                        'channel with this name has been defined']);
                 end
             else
-                error(['Invalid data type ' type]);
+                error(['Invalid channel ' channelname]);
             end
             
             % Get available samples
@@ -149,7 +153,7 @@ classdef PMDAQ < handle
             data = getdata(self.ai, nSamples);
             
             % Buffer data for other channels
-            otherChannels = 1:self.nChannels;
+            otherChannels = 1:length(self.channelIDs);
             otherChannels(channel) = [];
             maxBufferLength = size(self.buffer, 1);
             for i=otherChannels
@@ -172,6 +176,46 @@ classdef PMDAQ < handle
             % Return data for selected channels
             data = [self.buffer(1:self.bufferLength(channel(1)), channel); data(:, channel)];
             self.bufferLength(channel) = 0;
+        end
+        
+        function f = fAboveThreshold(channelName, threshold)
+        %FABOVETHRESHOLD Create channel monitor function
+        %   FABOVETHRESHOLD(CHANNELNAME, THRESHOLD) creates a function
+        %   that returns true if the voltage on CHANNELNAME rises above 
+        %   THRESHOLD
+            f = @() any(self.getData(channelName) > threshold);
+        end
+        
+        function f = fBelowThreshold(channelName, threshold)
+        %FBELOWTHRESHOLD Create channel monitor function
+        %   FBELOWTHRESHOLD(CHANNELNAME, THRESHOLD) creates a function
+        %   that returns true if the voltage on CHANNELNAME falls below 
+        %   THRESHOLD
+            f = @() any(self.getData(channelName) < threshold);
+        end
+    
+        function f = fDerivativeExceedsThreshold(channelName, threshold)
+        %FDERIVATIVEEXCEEDSTHRESHOLD Create channel monitor function
+        %   FDERIVATIVEEXCEEDSTHRESHOLD(CHANNELNAME, THRESHOLD) returns a
+        %   function that returns true when the difference between samples
+        %   on CHANNELNAME exceeds THRESHOLD
+
+            % Clear motion data before we start
+            lastData = self.getData(channelName);
+            if ~isempty(lastData)
+                lastData = lastData(end);
+            end
+
+            function isFinished = innerFunction()
+                data = self.getData(channelName);
+                if isempty(data)
+                    isFinished = false;
+                    return;
+                end
+                isFinished = any(abs(diff([lastData; data])) > threshold);
+                lastData = data(end);
+            end
+            f = @innerFunction;
         end
     end
 end

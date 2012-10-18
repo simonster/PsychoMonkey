@@ -1,100 +1,94 @@
-% PsychoMonkey
-% Copyright (C) 2012 Simon Kornblith
-%
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU Affero General Public License as
-% published by the Free Software Foundation, either version 3 of the
-% License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU Affero General Public License for more details.
-% 
-% You should have received a copy of the GNU Affero General Public License
-% along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 classdef PMServer < handle
-% PMServer Server for observing paradigms over a network
-    properties(Constant = true)
+% PMSERVER  Server for observing paradigms over a network.
+%   PMSERVER(PM, CONFIG) creates a new server for PsychoMonkey. In the
+%   process, it modifies the Java dynamic class path, which will destroy
+%   global variables. Be careful!
+    properties(Constant)
         % Maximum rate at which updates will be sent to the socket, in Hz
         MAX_UPDATE_RATE = 30;
+    end
+
+    properties(SetAccess = private, GetAccess = public)
+        config;
     end
     
     properties(Access = private)
         server;
-        lastEyePositionUpdateTime = -1;
-        drawCommands = {};
     end
     
     methods
-        function self = PMServer()
-            global CONFIG PM;
+        function self = PMServer(PM, config)
+            % Set Java classpath. This will obliterate global variables.
+            pathToPM = fileparts(which('PsychoMonkey.m'));
+            javaaddpath(fullfile(pathToPM, 'PMServer', 'bin'));
+            javaaddpath(fullfile(pathToPM, 'PMServer', 'Java-WebSocket', 'dist', ...
+                'WebSocket.jar'));
+            
+            self.config = PM.parseOptions(config, struct(...
+                'password', 'required' ...
+            ));
             
             % Initialize server
-            import com.simonster.PsychoMonkey.PMServer;
-            self.server = PMServer(savejson([], ...
-                rmfield(CONFIG, {'eyeTracker', 'password'})), CONFIG.password);
+            eval('import com.simonster.PsychoMonkey.PMServer;')
+            serverConfig = PM.config;
+            serverConfig.displaySize = PM.displaySize;
+            self.server = PMServer(savejson([], serverConfig), self.config.password);
             
-            % Hook into OSD and event loop
-            addlistener(PM.osd, 'targetsChanged', @self.onTargetsChanged);
-            addlistener(PM.osd, 'statusChanged', @self.onStatusChanged);
-            addlistener(PM.screenManager, 'screenCommand', @self.onScreenCommand);
-            addlistener(PM.daq, 'juice', @self.onJuice);
-            PM.eventLoop{end+1} = @self.updateEyePosition;
-        end
-        
-        function onTargetsChanged(self, osd, event)
-            self.server.updateTargets(savejson([], ...
-                struct('targetRects', osd.targetRects, ...
-                'targetIsOval', osd.targetIsOval)));
-        end
-        
-        function onStatusChanged(self, osd, event)
-            status = struct('state', osd.state, ...
-                'performance', osd.performance, ...
-                'keyInfo', osd.keyInfo);
-            self.server.updateStatus(savejson([], status));
-        end
-        
-        function onScreenCommand(self, src, event)
-            if strcmp(event.command, 'Flip')
-                self.server.updateDisplay(savejson([], self.drawCommands, ...
-                    'NoRowBracket', 1));
-                self.drawCommands = {};
-            elseif(strcmp(event.command, 'MakeTexture'))
-                self.server.addTexture(event.textureIndex, event.arguments{1});
-            else
-                self.drawCommands{end+1} = struct('command', event.command, ...
-                    'arguments', {event.arguments});
+            % Register listeners
+            lastEyePositionUpdateTime = -1;
+            drawCommands = {};
+            function onTargetsChanged( ~, ~)
+                self.server.updateTargets(savejson([], ...
+                    struct('targetRects', PM.targetRects, ...
+                    'targetIsOval', PM.targetIsOval)));
             end
-        end
-        
-        function onJuice(self, src, event)
-            self.server.juiceGiven(savejson([], ...
-                struct('time', event.time, ...
-                'between', event.between, ...
-                'reps', event.reps)));
-        end
-        
-        function updateEyePosition(self)
-            global CONFIG;
-            t = GetSecs();
-            if t-self.lastEyePositionUpdateTime > 1/self.MAX_UPDATE_RATE
-                self.lastEyePositionUpdateTime = t;
-                eyePosition = CONFIG.eyeTracker.getEyePosition();
-                self.server.updateEyePosition(eyePosition(1), eyePosition(2));
+            function onInfoChanged(~, ~)
+                status = struct('state', PM.state, ...
+                    'performance', PM.trialInfo, ...
+                    'keyInfo', PM.keyInfo);
+                self.server.updateStatus(savejson([], status));
             end
-        end
-        
-        function keys = getPressedKeys(self)
-            keys = self.server.getPressedKeys();
-            if ~isempty(keys)
-                keys = cell(keys);
+            function onScreenCommand(~, event)
+                if strcmp(event.command, 'Flip')
+                    self.server.updateDisplay(savejson([], drawCommands, ...
+                        'NoRowBracket', 1));
+                    drawCommands = {};
+                elseif(strcmp(event.command, 'MakeTexture'))
+                    self.server.addTexture(event.textureIndex, event.arguments{1});
+                else
+                    drawCommands{end+1} = struct('command', event.command, ...
+                        'arguments', {event.arguments});
+                end
             end
+            function onTick(~, ~)
+                t = GetSecs();
+                if t-lastEyePositionUpdateTime > 1/self.MAX_UPDATE_RATE
+                    lastEyePositionUpdateTime = t;
+                    eyePosition = PM.EyeTracker.getEyePosition();
+                    self.server.updateEyePosition(eyePosition(1), eyePosition(2));
+                end
+                
+                keys = self.server.getPressedKeys();
+                if ~isempty(keys)
+                    PM.simulateKeyPress(cell(keys));
+                end
+            end
+            function onJuice(~, event)
+                self.server.juiceGiven(savejson([], ...
+                    struct('time', event.time, ...
+                    'between', event.between, ...
+                    'reps', event.reps)));
+            end
+            addlistener(PM, 'targetsChanged', @onTargetsChanged);
+            addlistener(PM, 'stateChanged', @onInfoChanged);
+            addlistener(PM, 'keyInfoChanged', @onInfoChanged);
+            addlistener(PM, 'trialInfoChanged', @onInfoChanged);
+            addlistener(PM, 'screenCommand', @onScreenCommand);
+            addlistener(PM, 'tick', @onTick);
+            addlistener(PM.DAQ, 'juice', @onJuice);
         end
         
-        function shutdown(self)
+        function delete(self)
             self.server.stop();
         end
     end

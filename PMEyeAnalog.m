@@ -1,33 +1,14 @@
-% PsychoMonkey
-% Copyright (C) 2012 Simon Kornblith
-%
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU Affero General Public License as
-% published by the Free Software Foundation, either version 3 of the
-% License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU Affero General Public License for more details.
-% 
-% You should have received a copy of the GNU Affero General Public License
-% along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-classdef PMEyeAnalog < handle
+classdef PMEyeAnalog < PMEyeBase
 % PMEyeAnalog Analog eye tracker interface
 %   PMEyeAnalog() Creates a new EyeTracker object for an analog eye
 %   tracker.
-    properties
-        % Calibration points
-        POINTS = [0 0; -1 0; 1 0; 0 -1; 0 1]*5;
-        % Type of transform (must be an argument of cp2tform)
-        TRANSFORM_TYPE = 'projective';
-    end
     
     properties(Access = private)
         % The last eye position. An optimization for speed.
         lastEyePosition = [0 0];
+        
+        % Linear drift correction angle
+        linearDrift = [0 0];
         
         % A buffer of the last 60 seconds of raw eye positions. X and Y are
         % the first and second columns; each row is a sample.
@@ -44,20 +25,29 @@ classdef PMEyeAnalog < handle
     end
     
     methods
-        function self = PMEyeAnalog()
-            global CONFIG;
+        function self = PMEyeAnalog(PM, config)
+            self.PM = PM;
+            if isempty(PM.DAQ)
+                error('PMDAQ must be initialized before PMEyeAnalog');
+            end
+            
+            self.config = PM.parseOptions(config, struct(...
+                    'juiceTime', 150e-3, ...
+                    'calibrationPoints', [0 0; -1 0; 1 0; 0 -1; 0 1]*5, ...
+                    'transformType', 'projective', ...
+                    'transform', [] ...
+                ));
             
             % Initialize raw eye data buffer
-            self.rawEyeDataBuffer = zeros(CONFIG.analogSampleRate*60, 2);
+            self.rawEyeDataBuffer = zeros(PM.DAQ.config.analogSampleRate*60, 2);
             
-            if(exist('calibration.mat', 'file'))
+            if(~isempty(config.transform))
                 % Try to load old transform if there is one
-                self.transform = load('calibration.mat');
-                self.transform = self.transform.transform;
+                self.transform = config.transform;
             else
                 % Set up a boring default transform that will at least work
                 mat = [0 0; -1 0; 1 0; 0 -1; 0 1];
-                self.transform = cp2tform(mat, mat*20, 'projective');
+                self.transform = cp2tform(mat, mat*20, self.config.transformType);
             end
         end
         
@@ -65,14 +55,14 @@ classdef PMEyeAnalog < handle
         % GETEYEPOSITION Gets eye position and updates OSD
         %   EYEPOSITION = OBJ.GETEYEPOSITION() gets the current eye 
         %   position in pixels and updates the auxiliary display
-            global CONFIG PM;
+            PM = self.PM;
             
             if ~exist('retrieveSamples', 'var')
                 retrieveSamples = 1;
             end
             
             % Get last sample of eye data from the DAQ
-            rawEyeData = PM.daq.getData('eye');
+            rawEyeData = PM.DAQ.getData('eye');
             
             if isempty(rawEyeData) && retrieveSamples == 1
                 % In case we haven't acquired a new sample since the last
@@ -98,14 +88,16 @@ classdef PMEyeAnalog < handle
             
             % Scale the eye data
             rawEyePosition = self.rawEyeDataBuffer(end-min(retrieveSamples, self.rawEyeDataBufferLength)+1:end, :);
-            eyePosition = PMAngleToPixels(tformfwd(self.transform, rawEyePosition(:, 1), rawEyePosition(:, 2)));
+            rawEyePosition(:, 1) = rawEyePosition(:, 1) + self.linearDrift(1);
+            rawEyePosition(:, 2) = rawEyePosition(:, 2) + self.linearDrift(2);
+            eyePosition = PM.angleToPixels(tformfwd(self.transform, rawEyePosition(:, 1), rawEyePosition(:, 2)));
             self.lastEyePosition = eyePosition(end, :);
         end
         
-        function init(self)
+        function init(~)
         % INIT Initialize eye tracker 
-        %   OBJ.INIT() is called after PMScreenManager, PMDAQ, and PMOSD
-        %   have been initialized to complete eye tracker initialization.
+        %   TRACKER.INIT() is called after PsychoMonkey is initialized to
+        %   complete setup.
         end
         
         function calibrate(self)
@@ -113,32 +105,22 @@ classdef PMEyeAnalog < handle
         %   SUCCESS = OBJ.CALIBRATE() shows the dot pattern to calibrate
         %   the eye tracker. If SUCCESS is false, the user cancelled
         %   calibration.
-            global CONFIG PM;
+            PM = self.PM;
             
-            KEY_USE = 32;       % Space
-            KEY_ANIMATE = 65;   % A
-            KEY_BLINK = 66;     % B
-            KEY_BACK = 37;      % Left
-            KEY_FORWARD = 39;   % Right
-            KEY_QUIT = 27;      % Escape
-            KEY_JUICE = 74;     % J
-            KEYS = [KEY_USE KEY_ANIMATE KEY_BLINK KEY_BACK KEY_FORWARD ...
-                KEY_QUIT KEY_JUICE];
-            
-            PM.osd.state = 'ISCAN Calibration';
-            PM.osd.keyInfo = struct(...
-                'Space', 'Use eye position',...
+            KEYS = struct(...
+                'SPACE', 'Use eye position',...
+                'LEFTARROW', 'Previous point',...
+                'RIGHTARROW', 'Next point',...
                 'A', 'Animate point',...
                 'B', 'Blink point',...
-                'LEFT', 'Previous point',...
-                'RIGHT', 'Next point',...
                 'J', 'Give juice',...
-                'ESC', 'Exit calibration'...
+                'ENTER', 'Accept calibration',...
+                'ESCAPE', 'Cancel calibration'...
             );
             
-            pointRadius = round(PMAngleToPixels(CONFIG.fixationPointRadius));
-            pointLocations = round(PMAngleToPixels(self.POINTS));
-            pointValues = self.POINTS*NaN;
+            pointRadius = round(PM.angleToPixels(self.FIXATION_POINT_RADIUS));
+            pointLocations = round(PM.angleToPixels(self.config.calibrationPoints));
+            pointValues = self.config.calibrationPoints*NaN;
             targetPos = pointValues;
             targetStd = pointValues;
             
@@ -146,57 +128,47 @@ classdef PMEyeAnalog < handle
             i = 1;
             while true
                 % Show point
-                pointCenter = CONFIG.displayCenter+pointLocations(i, :);
-                PMScreen('FillOval', 255, ...
+                pointCenter = PM.displayCenter+pointLocations(i, :);
+                PM.screen('FillOval', 255, ...
                     [pointCenter-pointRadius pointCenter+pointRadius]);
-                PMScreen('Flip');
+                PM.screen('Flip');
                 
                 % Wait for a key press
                 key = 0;
-                while key ~= KEY_USE && key ~= KEY_BACK && key ~= KEY_FORWARD
-                    [~, key] = PMSelect(PMEvKeyPress(KEYS, true));
+                while ~any(strcmp(key, {'SPACE', 'LEFTARROW', 'RIGHTARROW'}))
+                    [~, key] = PM.select(PM.fKeyPress(KEYS, true));
                     
-                    if key == KEY_QUIT
-                        return;
-                    elseif key == KEY_JUICE
-                        PM.daq.giveJuice(CONFIG.juiceManual);
-                    else
-                        if key == KEY_ANIMATE
-                            [~, key] = PMSelect(...
-                                PMEvKeyPress(KEYS, true), ...
-                                self.animatePoint(pointCenter) ...
-                            );
-                        elseif key == KEY_BLINK
-                            [~, key] = PMSelect(...
-                                PMEvKeyPress(KEYS, true), ...
-                                self.blinkPoint(pointCenter) ...
-                            );
-                        end
-                        
-                        if key ~= KEY_USE && key ~= KEY_QUIT ...
-                                && key ~= KEY_BACK && key ~= KEY_FORWARD
-                            PMScreen('FillOval', 255, ...
+                    switch key
+                        case 'J'
+                            PM.daq.giveJuice(self.config.juiceTime);
+                        case 'ESCAPE'
+                            return;
+                        case {'A', 'B'}
+                            if key == 'A'
+                                animateFn = self.animatePoint(pointCenter);
+                            elseif key == 'B'
+                                animateFn = self.blinkPoint(pointCenter);
+                            end
+                            PM.select(PM.fKeyPress(KEYS, true), animateFn);
+                            PM.screen('FillOval', 255, ...
                                 [pointCenter-pointRadius pointCenter+pointRadius]);
-                            PMScreen('Flip');
-                        end
+                            PM.screen('Flip');
                     end
                 end
                 
-                if key == KEY_USE
+                if strcmp(key, 'SPACE')
                     % Get smoothTime worth of samples of eye data from the DAQ
-                    [eyePosition, rawEyePosition] = self.getEyePosition(CONFIG.analogSampleRate*self.smoothTime);
+                    [eyePosition, rawEyePosition] = self.getEyePosition(PM.DAQ.config.analogSampleRate*self.smoothTime);
                     pointValues(i, :) = median(rawEyePosition);
                     
                     targetPos(i, :) = tformfwd(self.transform, pointValues(i, 1), pointValues(i, 2));
                     targetStd(i, :) = abs(diff(prctile(eyePosition, [95 5])));
-                    PM.osd.plotTarget(targetPos(i, :), targetStd(i, :));
+                    PM.plotTarget(targetPos(i, :), targetStd(i, :));
                     
-                    if sum(~isnan(pointValues)) == size(self.POINTS, 1)
+                    if sum(~isnan(pointValues)) == size(self.config.calibrationPoints, 1)
                         % Got all points; try to transform
                         try
-                            self.transform = cp2tform(pointValues, self.POINTS, self.TRANSFORM_TYPE);
-                            transform = self.transform;
-                            save('calibration.mat', 'transform');
+                            self.transform = cp2tform(pointValues, self.config.calibrationPoints, self.config.transformType);
                             break;
                         catch e
                             disp(e.identifier);
@@ -213,88 +185,42 @@ classdef PMEyeAnalog < handle
 %                         end
                         i = find(isnan(pointValues), 1);
                     end
-                elseif key == KEY_BACK && i ~= 1
+                elseif strcmp(key, 'LEFTARROW') && i ~= 1
                     % Go back without saving calibration
                     i = i - 1;
                     
-                    PM.osd.clearTargets();
+                    PM.clearTargets();
                     for j=find(~isnan(targetPos(i, 1)))
-                    	PM.osd.plotTarget(targetPos(j, :), targetStd(j, :));
+                    	PM.plotTarget(targetPos(j, :), targetStd(j, :));
                     end
-                elseif key == KEY_FORWARD && i ~= size(self.POINTS, 1);
+                elseif strcmp(key, 'RIGHTARROW') && i ~= size(self.config.calibrationPoints, 1);
                     % Go forward without saving calibration
                     i = i + 1;
                     
-                    PM.osd.clearTargets();
+                    PM.clearTargets();
                     for j=find(~isnan(targetPos(i, 1)))
-                    	PM.osd.plotTarget(targetPos(j, :), targetStd(j, :));
+                    	PM.plotTarget(targetPos(j, :), targetStd(j, :));
                     end
                 end
             end
-        end
-    end
-    
-    methods(Static, Access = protected)
-        function fn = animatePoint(pointCenter)
-        % ANIMATEPOINT Animates a point at the specified location
-        %   OBJ.ANIMATEPOINT() returns a function that steps through an
-        %   animation at the specified location, using synchronous flips.
-        %   It returns TRUE when the animation is complete.
-            global CONFIG;
-            radii = round(PMAngleToPixels(CONFIG.fixationPointRadius));
-            radii = [repmat(radii:radii/2:radii*5, 1, 4) radii];
-            index = 1;
-            
-            function isFinished = animationFunction()
-                % Check if finished
-                isFinished = index > length(radii);
-                if isFinished
-                    return;
-                end
-                
-                % Show oval
-                PMScreen('FillOval', 255, ...
-                    [pointCenter-radii(index) pointCenter+radii(index)]);
-                index = index + 1;
-                PMScreen('Flip');
-            end
-            
-            fn = @animationFunction;
         end
         
-        function fn = blinkPoint(pointCenter)
-        % BLINKPOINT Blinks a point at the specified location
-        %   OBJ.BLINKPOINT() returns a function that blinks a point on
-        %   and off at the specified location. It returns TRUE when the
-        %   animation is complete.
-            global CONFIG;
-            radius = round(PMAngleToPixels(CONFIG.fixationPointRadius));
-            rect = [pointCenter-radius pointCenter+radius];
-            showingPoint = false;
-            blinksRemaining = 6;
-            secsBetween = 50e-3;
-            timer = 0;
-            
-            function isFinished = animationFunction()
-                % Check if finished
-                isFinished = blinksRemaining == 0;
-                if isFinished
-                    return;
-                end
-                
-                if GetSecs() > timer
-                    if ~showingPoint
-                        % Show oval
-                        PMScreen('FillOval', 255, rect);
-                        blinksRemaining = blinksRemaining - 1;
-                    end
-                    flipTime = PMScreen('Flip');
-                    showingPoint = ~showingPoint;
-                    timer = flipTime + secsBetween;
-                end
+        function correctDrift(self, correctX, correctY, numberOfSamples)
+        % CORRECTDRIFT Corrects drift using known pupil position.
+        %   OBJ.CORRECTDRIFT(CORRECTX, CORRECTY) assumes that the subject
+        %   is fixating on an object at pixel coordinates
+        %   (CORRECTX, CORRECTY) and corrects the eye signal to compensate
+        %   using the median of the previous 50 samples of eye data.
+        %   OBJ.CORRECTDRIFT(CORRECTX, CORRECTY, NUMBEROFSAMPLES) specifies
+        %   the median of the previous NUMBEROFSAMPLES samples should be
+        %   used to compute the offset.
+            PM = self.PM;
+            if ~exist('numberOfSamples', 'var')
+                numberOfSamples = 50;
             end
-            
-            fn = @animationFunction;
+            samples = self.getEyePosition(numberOfSamples);
+            offset = round([correctX correctY] - median(samples));
+            self.linearDrift = 2*atan(([correctX correctY]*PM.config.displayWidth/PM.displaySize(1))/2*PM.config.displayDistance)-offset;
         end
     end
 end

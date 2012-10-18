@@ -14,7 +14,7 @@
 % You should have received a copy of the GNU Affero General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-classdef PMEyeSim < handle
+classdef PMEyeSim < PMEyeBase
 % PMEyeSim Simulated eye tracker
 %   PMEyeSim(LOCATIONS) Creates a new EyeTracker object that simulates an eye
 %   tracker. LOCATIONS should be an n x 2 matrix of fixation locations.
@@ -32,18 +32,23 @@ classdef PMEyeSim < handle
             if size(self.positions, 1) > 9
                 error('PMEyeSim supports at most 9 fixation locations');
             end
-            self.evKeyboardFixate = PMEvKeyPress(48+(1:size(self.positions, 1)));
+            
+            keys = struct();
+            for i=1:size(positions, 1)
+                keys.(KbName(10+i)) = sprintf('(%d,%d)', positions(i, 1), positions(i, 2));
+            end
+            
+            self.evKeyboardFixate = PM.fKeyPress(keys);
         end
         
-        function init(self)
+        function init(~)
         % INIT Initialize eye tracker 
-        %   OBJ.INIT() is called after PMScreenManager, PMDAQ, and PMOSD
-        %   have been initialized to complete eye tracker initialization.
+        %   TRACKER.INIT() is called after PsychoMonkey initialization
         end
         
         function eyePosition = getEyePosition(self)
         % GETEYEPOSITION Gets eye position and updates OSD
-        %   EYEPOSITION = OBJ.GETEYEPOSITION() gets the current eye 
+        %   EYEPOSITION = TRACKER.GETEYEPOSITION() gets the current eye 
         %   position in degrees and updates the auxiliary display
             key = self.evKeyboardFixate();
             if key
@@ -54,11 +59,22 @@ classdef PMEyeSim < handle
             end
         end
         
-        function calibrate(self)
+        function calibrate(~)
         % CALIBRATE Calibrate the eye tracker
-        %   SUCCESS = OBJ.CALIBRATE() shows the dot pattern to calibrate
+        %   SUCCESS = TRACKER.CALIBRATE() shows the dot pattern to calibrate
         %   the eye tracker. If SUCCESS is false, the user cancelled
         %   calibration.
+        end
+        
+        function correctDrift(~, ~, ~, ~)
+        % CORRECTDRIFT Corrects drift using known pupil position.
+        %   TRACKER.CORRECTDRIFT(CORRECTX, CORRECTY) assumes that the subject
+        %   is fixating on an object at pixel coordinates
+        %   (CORRECTX, CORRECTY) and corrects the eye signal to compensate
+        %   using the median of the previous 50 samples of eye data.
+        %   TRACKER.CORRECTDRIFT(CORRECTX, CORRECTY, NUMBEROFSAMPLES) specifies
+        %   the median of the previous NUMBEROFSAMPLES samples should be
+        %   used to compute the offset.
         end
     end
 end

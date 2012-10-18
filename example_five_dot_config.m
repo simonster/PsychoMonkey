@@ -1,61 +1,111 @@
-function example_five_dot_config()
-PMSetup();
-global CONFIG;
-CONFIG = struct();
+function config = example_five_dot_config()
+config = struct();
+
+%% PsychoMonkey configuration
+config.PM_config = struct();
+
 % # of the main (task) display
-CONFIG.mainDisplay = 2;
+config.PM_config.mainDisplay = 1;
+
 % # of the auxiliary (info) display
-CONFIG.auxDisplay = 1;
-% Height in pixels of region of auxiliary display to use for info display
-CONFIG.OSDHeight = 150;
-% Distance from the animal to the main display, in cm
-CONFIG.displayDistance = 55;
-% Width of the main display, in cm
-CONFIG.displayWidth = 41;
-% Radius of the fixation dot, in degrees
-CONFIG.fixationPointRadius = 0.3;
-% Radius around the fixation dot for fixation, in degrees
-CONFIG.fixationRadius = 5;
-% Image width, in degrees
-CONFIG.imageWidth = 4;
+config.PM_config.auxDisplay = 2;
+
 % Background color of the screen
-CONFIG.backgroundColor = 0;
+%config.PM_config.backgroundColor = 0;
+
+% Width of the main display, arbitrary units
+config.PM_config.displayWidth = 41;
+
+% Distance from the animal to the main display, same units as above
+config.PM_config.displayDistance = 55;
+
+% Whether to enable debug mode. Currently, this prints statistics about
+% every PM.select() call to validate real-time performance
+config.PM_config.debug = false;
+
+
+%% PMDAQ configuration
+config.PMDAQ_config = struct();
 
 % DAQ adaptor name
-CONFIG.daqAdaptor = 'nidaq';
+config.PMDAQ_config.daqAdaptor = 'nidaq';
+
 % DAQ adaptor ID
-CONFIG.daqID = 'Dev1';
-% Input type. I think this will always be SingleEnded.
-CONFIG.daqInputType = 'SingleEnded';
+config.PMDAQ_config.daqID = 'Dev2';
+
+% Input type. I think this will always be SingleEnded, but maybe not.
+%config.PMDAQ_config.daqInputType = 'SingleEnded';
+
+% Channel configuration. This is a struct whose fields are the names of the
+% channels and whose values are the channel numbers. PMEyeAnalog expects
+% two eye channels to be specified here.
+%config.PMDAQ_config.analogChannels = struct();
+
+% Juice channel. This is special because it's a digital channel.
+config.PMDAQ_config.juiceChannel = 8;
+
 % Analog sample rate in Hz. If using the motion detector, this should be at
 % least 10000. If not, 1000 is typically a good value.
-CONFIG.analogSampleRate = 1000;
-% The channels on the DAQ dedicated to the motion sensor, or the empty set
-% if no motion sensor
-CONFIG.channelsMotion = [];
-% The (digital) channel on the DAQ dedicated to juice
-CONFIG.channelJuice = 0;
-% The motion threshold, in volts
-CONFIG.motionThreshold = 0.5;
-% Use iscan interface
-CONFIG.eyeTracker = PMEyeLink();
-%CONFIG.eyeTracker = PMEyeAnalog();
-%CONFIG.eyeTracker = PMEyeSim([5 5; 0 0; -2 0; 2 0]);
+config.PMDAQ_config.analogSampleRate = 1000;
+
+
+%% PMEyeLink configuration
+config.PMEyeLink_config = struct();
+
+% Juice time for reward during calibration, in ms
+%config.PMEyeLink_config.juiceTime = 150e-3;
+
+% Eye (l or r)
+%config.PMEyeLink_config.eye = 'r';
+
+% Name for EDF file on eyelink
+%config.PMEyeLink_config.edfName = [num2str(floor(rand()*100000)) '.edf'];
+
+% Whether to draw gaze targets on the EyeLink. Note that the EyeLink manual
+% does not recommend this if you are recording fixation data.
+%config.PMEyeLink_config.drawOnTracker = false;
+
+
+%% PMServer configuration
+config.PMServer_config = struct();
+
+% Login password
+config.PMServer_config.password = 'goodmonkey';
+
+
+%% example_five_dot configuration
+% Radius of the fixation dot, in degrees
+config.fixationPointRadius = 0.2;
+
+% Radius around the fixation dot for fixation, in degrees
+config.fixationRadius = 5;
+
+% Image width, in degrees
+config.imageWidth = 4;
 
 % Time penalty for motion (seconds)
-CONFIG.timeoutMotion = 5;
+config.timeoutMotion = 5;
+
 % Time penalty for losing fixation
-CONFIG.timeoutFixationLost = 0;
+config.timeoutFixationLost = 0;
+
 % Juice given manually (seconds)
-CONFIG.juiceManual = 150e-3;
-% Juice given for a correct response (seconds)
-CONFIG.juiceTimeCorrect = 150e-3;
-CONFIG.juiceBetweenCorrect = 20e-3;
-CONFIG.juiceRepsCorrect = 2;
+config.juiceManual = 150e-3;
+
+% Duration of juice pulses for a correct response
+config.juiceTimeCorrect = 150e-3;
+
+% Amount of time between juice pulses for correct response
+config.juiceBetweenCorrect = 20e-3;
+
+% Number of juice pulses given for correct response
+config.juiceRepsCorrect = 2;
 
 % Eccentricity of the dots on the screen, in degrees
-CONFIG.dotEccentricity = 7;
+config.dotEccentricity = 7;
+
 % The amount of time the dot is on for
-CONFIG.dotTime = 5000e-3;
-% Reward given
-CONFIG.dotRewardTime = 1200e-3;
+config.dotTime = 5000e-3;
+
+% Reward given after fixating this long
+config.dotRewardTime = 1200e-3;
