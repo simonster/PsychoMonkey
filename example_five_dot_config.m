@@ -80,15 +80,6 @@ config.fixationPointRadius = 0.2;
 % Radius around the fixation dot for fixation, in degrees
 config.fixationRadius = 5;
 
-% Image width, in degrees
-config.imageWidth = 4;
-
-% Time penalty for motion (seconds)
-config.timeoutMotion = 5;
-
-% Time penalty for losing fixation
-config.timeoutFixationLost = 0;
-
 % Juice given manually (seconds)
 config.juiceManual = 150e-3;
 
