@@ -101,7 +101,6 @@ while state
         %% Automatic control
         PM.setState('Automatic Control');
         
-        % Wait for fixation, motion, or keypress
         horizontalDots = [-config.dotEccentricity 0
             0 0
             config.dotEccentricity 0
