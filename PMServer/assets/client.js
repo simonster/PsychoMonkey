@@ -193,7 +193,8 @@ var Client = function() {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
 	this.ptb = new PTB(this.ctx);
-	this._lastEyePosition = this._currentTargets = this._lastTargets = null;
+	this._lastEyePosition = this._currentTargets = null;
+	this._currentDirectives = [];
 	this._textures = {};
 }
 Client.prototype = {
@@ -245,6 +246,7 @@ Client.prototype = {
 				
 				if(key) {
 					event.preventDefault();
+					console.log("KEY: "+key);
 					ws.send("KEY: "+key);
 				}
 			};
@@ -295,8 +297,8 @@ Client.prototype = {
 	 * Updates targets plotted over the canvas
 	 */
 	"TRG":function(payload) {
-		this._lastTargets = this._currentTargets;
 		this._currentTargets = payload;
+		this.DRW(this._currentDirectives);
 		this._drawTargets();
 	},
 	
@@ -306,7 +308,7 @@ Client.prototype = {
 	"DRW":function(directives) {
 		var cw = this.canvas.width, ch = this.canvas.height;
 		this.ctx.clearRect(0, 0, cw, ch);
-		this._lastTargets = null;
+		this._currentDirectives = directives;
 		if(!(directives instanceof Array)) directives = [directives];
 		for(var i=0; i<directives.length; i++) {
 			var directive = directives[i];
@@ -413,18 +415,6 @@ Client.prototype = {
 		for(var i=0; i<this._currentTargets.targetRects.length; i++) {
 			var targetRect = this._currentTargets.targetRects[i],
 				targetIsOval = this._currentTargets.targetIsOval;
-			if(this._lastTargets && this._lastTargets.targetRects) {
-				// Don't re-plot old targets
-				var contained = false;
-				for(var j=0; j<this._lastTargets.targetRects.length && !contained; j++) {
-					var lastTargetRect = this._lastTargets.targetRects[j];
-					contained = lastTargetRect[0] !== targetRect[0] ||
-						lastTargetRect[1] !== targetRect[1] ||
-						lastTargetRect[2] !== targetRect[2] ||
-						lastTargetRect[3] !== targetRect[3];
-				}
-				if(contained) continue;
-			}
 			
 			targetIsOval = targetIsOval[i] && (typeof targetIsOval[i] !== "object" || targetIsOval[i][0]);
 			this.ptb[targetIsOval ? "FrameOval" : "FrameRect"]([255, 255, 0, 1], targetRect);
