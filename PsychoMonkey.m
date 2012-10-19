@@ -1,4 +1,6 @@
 classdef PsychoMonkey < handle
+% PSYCHOMONKEY  PsychoMonkey core object
+%   PSYCHOMONKEY implements display and event-related functionality.
     properties
         EyeTracker = [];
         DAQ = [];

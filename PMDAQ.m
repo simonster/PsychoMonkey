@@ -1,6 +1,6 @@
 classdef PMDAQ < handle
-% PMDAQ DAQ abstraction interface
-%   PMDAQ(CONFIG) creates a new DAQ object
+% PMDAQ  DAQ abstraction interface
+%   PMDAQ(PM, CONFIG) initializes the DAQ device
     properties(Access = private)
         % A buffer of data that has not been requested, up to 60 seconds
         % long. Rows represent samples; columns represent channels.

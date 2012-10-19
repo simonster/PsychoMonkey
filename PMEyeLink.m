@@ -1,7 +1,7 @@
 classdef PMEyeLink < PMEyeBase
-% PMEYELINK EyeLink interface
-%   PMEYELINK() Creates a new EyeTracker object for an analog eye
-%   tracker.
+% PMEYELINK  EyeLink module
+%   PMEYELINK(PM, CONFIG) sets up an EyeLink eye tracker. This class requires
+%   that the EyeLink toolbox.
     properties(Access = private)
         % A buffer of the last 60 seconds of raw eye positions. X and Y are
         % the first and second columns; each row is a sample.

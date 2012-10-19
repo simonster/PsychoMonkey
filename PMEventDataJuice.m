@@ -1,4 +1,5 @@
 classdef PMEventDataJuice < event.EventData
+% PMEVENTDATAJUICE  EventData object for PMDAQ juice event
     properties
         time;
         between;

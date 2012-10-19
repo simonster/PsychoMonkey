@@ -1,10 +1,10 @@
 classdef PMEyeSim < PMEyeBase
-% PMEyeSim Simulated eye tracker
-%   PMEyeSim(LOCATIONS) Creates a new EyeTracker object that simulates an eye
-%   tracker. LOCATIONS should be an n x 2 matrix of fixation locations in
-%   degrees from the center of the screen. These fixation locations will be
-%   mapped to function keys on the keyboard,such that F1 = fixation at
-%   location 1, F2 = fixation at location 2, etc.
+% PMEYESIM  Simulated eye tracker
+%   PMEYESIM(PM, LOCATIONS) simulates an eye tracker. LOCATIONS should be an
+%   n x 2 matrix of fixation locations in degrees from the center of the
+%   screen. These fixation locations will be mapped to function keys on the
+%   keyboard,such that pressing F1 moves the fixation spot to location 1, 
+%   F2 = fixation at location 2, etc.
     properties(Access = private)
         lastPosition = [10 10];
         positions;

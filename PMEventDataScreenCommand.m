@@ -1,4 +1,5 @@
 classdef PMEventDataScreenCommand < event.EventData
+% PMEVENTDATAJUICE  EventData object for PsychoMonkey screenCommand event
     properties
         command;
         arguments;

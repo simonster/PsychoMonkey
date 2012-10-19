@@ -1,5 +1,6 @@
 classdef PMEyeBase < handle
-% PMEYEBASE  Base eye tracker functions
+% PMEYEBASE  Base eye tracker
+%   PMEYEBASE is the base eye tracker from which all others must inherit.
     properties(SetAccess = protected, GetAccess = public)
         config = struct();
         PM;
