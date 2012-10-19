@@ -315,8 +315,10 @@ classdef PsychoMonkey < handle
                     end
                 elseif ~isempty(self.simulatedKeysPressed)
                     tf = ismember(upperKeyNames, self.simulatedKeysPressed);
-                    isFinished = keyNames{find(tf, 1)};
-                    self.simulatedKeysPressed = [];
+                    if any(tf)
+                        isFinished = keyNames{find(tf, 1)};
+                        self.simulatedKeysPressed = [];
+                    end
                 end
             end
 
