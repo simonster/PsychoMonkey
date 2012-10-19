@@ -19,11 +19,13 @@ classdef PMEyeSim < PMEyeBase
                 error('PMEyeSim supports at most 12 fixation locations');
             end
             
-            keys = struct();
+            % Create a cell array of keys
+            keys = cell(1, size(positions, 1));
             for i=1:size(positions, 1)
-                keys.(KbName(111+i)) = sprintf('(%d,%d)', positions(i, 1), positions(i, 2));
+                keys{i} = KbName(111+i);
             end
             
+            % Set up key press function
             self.evKeyboardFixate = PM.fKeyPress(keys);
             
             % Register with PsychoMonkey

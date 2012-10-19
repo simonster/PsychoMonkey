@@ -7,48 +7,81 @@ classdef PsychoMonkey < handle
     end
     
     properties(SetAccess = private, GetAccess = public)
+        % The configuration supplied by the user
         config = [];
         
-        % For screen functionality
+        % The PTB window pointer for the main screen. In most use cases,
+        % this isn't needed; instead, your code should call PM.screen().
+        % However, the Eyelink toolbox needs access to it, so it is exposed
+        % publicly here.
         mainDisplayPtr = [];
+        
+        % The size of the main display in pixels
         displaySize;
+        
+        % The center of the main display in pixels
         displayCenter;
+        
+        % The current state. This can be set using PM.setState()
         state = 'Uninitialized';
+        
+        % Information about trials. This can be set using PM.setTrialInfo()
         trialInfo = [];
+        
+        % Information about what specific keys do. This is set
+        % automatically by PM.fFixate()
         keyInfo = [];
+        
+        % The locations of targets to be plotted on the eye tracker. These
+        % can be changed using PM.plotTarget() and PM.clearTargets()
         targetRects = zeros(0, 4);
+        
+        % Whether fixation targets are oval or square
         targetIsOval = [];
     end
     
     properties(Access = private)
-        % For screen functionality
+        % The PTB window pointer for the auxiliary display
         auxDisplayPtr = [];
+        
+        % The PTB window pointer for the offscreen display
         offscreenDupPtr = [];
+        
+        % Whether the auxiliary display is flipping
         auxWaitingForAsyncFlip = false;
+        
+        % Whether the underlay on the auxiliary display needs to be redrawn
         redrawUnderlay = false;
-
+        
+        % Allows other components (e.g. PMServer) to simulate key presses
         simulatedKeysPressed = [];
     end
     
     properties(Constant)
+        % The size of the text for the auxiliary display
         TEXT_SIZE = 12;
+        
+        % The text spacing on the auxiliary display
         TEXT_SPACING = 12;
+        
+        % How much of the auxiliary display to dedicate to
+        % state/keyInfo/trialInfo
         OSD_HEIGHT = 140;
     end
     
     events
-        tick              % Triggered while running event loop in select()
+        tick              % Triggered repeatedly by PM.select()
         
         % For screen functionality
-        screenCommand     % Triggered by screen()
+        screenCommand     % Triggered by PM.screen()
         
         % For OSD
-        stateChanged      % Triggered by setState()
-        trialInfoChanged  % Triggered by setTrialInfo()
-        keyInfoChanged    % Triggered by setKeyInfo()
-        targetsChanged    % Triggered by plotTarget()/clearTargets()
+        stateChanged      % Triggered by PM.setState()
+        trialInfoChanged  % Triggered by PM.setTrialInfo()
+        keyInfoChanged    % Triggered by PM.setKeyInfo()
+        targetsChanged    % Triggered by PM.plotTarget()/PM.clearTargets()
         
-        initialized
+        initialized       % Triggered by PM.init()
     end
     
     methods
@@ -281,7 +314,7 @@ classdef PsychoMonkey < handle
         end
         
         function f = fKeyPress(self, keys, blockUntilRelease)
-        %FKEYPRESS Create keypress function
+        %FKEYPRESS  Create keypress function
         %   FKEYPRESS(KEYS) creates a function whose that returns they keycode
         %   or name of the key when one of the keys specified by KEYS has been
         %   pressed. KEYS must be a struct whose fields are key names and
@@ -293,14 +326,32 @@ classdef PsychoMonkey < handle
                 blockUntilRelease = false;
             end
             
-            self.keyInfo = keys;
-            notify(self, 'keyInfoChanged');
-            keyNames = fieldnames(keys);
+            setKeyInfo = isstruct(keys);
+            if setKeyInfo
+                keyNames = fieldnames(keys);
+            else
+                % While we don't advertise it in the description above,
+                % keys can also be a cell array of key names.
+                if iscell(keys)
+                    keyNames = keys;
+                else
+                    error('KEYS must be a struct');
+                end
+            end
+            
             upperKeyNames = upper(keyNames); 
             keyCodes = KbName(keyNames);
 
             function isFinished = innerFunction()
+                % Make sure keyInfo is up to date
+                if setKeyInfo && ~isequal(self.keyInfo, keys)
+                    self.keyInfo = keys;
+                    notify(self, 'keyInfoChanged');
+                end
+                
                 isFinished = false;
+                
+                % Handle real key presses
                 [keyDown, ~, keysPressed] = KbCheck();
                 if keyDown
                     codesOn = keysPressed(keyCodes);
@@ -316,6 +367,7 @@ classdef PsychoMonkey < handle
                         end
                     end
                 elseif ~isempty(self.simulatedKeysPressed)
+                    % Handle simulated key presses
                     tf = ismember(upperKeyNames, self.simulatedKeysPressed);
                     if any(tf)
                         isFinished = keyNames{find(tf, 1)};
@@ -329,9 +381,9 @@ classdef PsychoMonkey < handle
         
         function simulateKeyPress(self, keys)
         %SIMULATEKEYPRESS  Simulate a keypress
-        %    PM.SIMULATEKEYPRESS(KEYS) makes functions returned by
-        %    PM.FKEYPRESS() return true if they are waiting for one of the
-        %    keys in KEYS. KEYS is a cell array of key names.
+        %   PM.SIMULATEKEYPRESS(KEYS) makes functions returned by
+        %   PM.FKEYPRESS() return true if they are waiting for one of the
+        %   keys in KEYS. KEYS is a cell array of key names.
             self.simulatedKeysPressed = keys;
         end
         
@@ -345,8 +397,10 @@ classdef PsychoMonkey < handle
         
         function setTrialInfo(self, info)
         %SETTRIALINFO  Set current trialInfo structure
-            self.trialInfo = info;
-            notify(self, 'trialInfoChanged');
+            if ~isequal(info, self.trialInfo)
+                self.trialInfo = info;
+                notify(self, 'trialInfoChanged');
+            end
         end
     end
     
