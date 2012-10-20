@@ -203,9 +203,9 @@ classdef PMEyeLink < PMEyeBase
                             if tx && ty
                                 pointCenter = [tx ty];
                                 if key == 'A'
-                                    animateFn = self.animatePoint(pointCenter);
+                                    animateFn = self.fAnimatePoint(pointCenter);
                                 elseif key == 'B'
-                                    animateFn = self.blinkPoint(pointCenter);
+                                    animateFn = self.fBlinkPoint(pointCenter);
                                 end
                                 PM.select(PM.fKeyPress(KEYS, true), animateFn);
                                 PM.screen('FillOval', 255, ...

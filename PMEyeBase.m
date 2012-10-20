@@ -80,12 +80,10 @@ classdef PMEyeBase < handle
                 f = @innerFunctionRectangle;
             end
         end
-    end
-    
-    methods(Access = protected)
-        function fn = animatePoint(self, pointCenter)
-        % ANIMATEPOINT Animates a point at the specified location
-        %   TRACKER.ANIMATEPOINT() returns a function that steps through an
+        
+        function fn = fAnimatePoint(self, pointCenter)
+        %FANIMATEPOINT Animates a point at the specified location
+        %   TRACKER.FANIMATEPOINT() returns a function that steps through an
         %   animation at the specified location, using synchronous flips.
         %   It returns TRUE when the animation is complete.
             PM = self.PM; %#ok<*PROP>
@@ -110,9 +108,9 @@ classdef PMEyeBase < handle
             fn = @animationFunction;
         end
         
-        function fn = blinkPoint(self, pointCenter)
-        % BLINKPOINT Blinks a point at the specified location
-        %   TRACKER.BLINKPOINT() returns a function that blinks a point on
+        function fn = fBlinkPoint(self, pointCenter)
+        %FBLINKPOINT Blinks a point at the specified location
+        %   TRACKER.FBLINKPOINT() returns a function that blinks a point on
         %   and off at the specified location. It returns TRUE when the
         %   animation is complete.
             PM = self.PM;
