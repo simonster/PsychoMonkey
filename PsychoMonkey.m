@@ -395,11 +395,57 @@ classdef PsychoMonkey < handle
             end
         end
         
-        function setTrialInfo(self, info)
-        %SETTRIALINFO  Set current trialInfo structure
-            if ~isequal(info, self.trialInfo)
-                self.trialInfo = info;
+        function setTrialInfo(self, trialInfo)
+        %SETTRIALINFO  Set trialInfo structure or map
+        %   SETTRIALINFO(TRIALINFO) sets the trialInfo structure whose
+        %   contents are displayed in the upper right corner of the screen.
+        %   TRIALINFO may be either an instance of containers.Map or a
+        %   struct; in the latter case, it is converted to an instance of
+        %   containers.Map.
+            if ~isequal(trialInfo, self.trialInfo)
+                if isstruct(trialInfo)
+                    self.trialInfo = containers.Map(fieldnames(trialInfo), struct2cell(trialInfo));
+                elseif isa(trialInfo, containers.Map)
+                    self.trialInfo = trialInfo;
+                else
+                    error('TRIALINFO must be an instance of containers.Map or a struct');
+                end
                 notify(self, 'trialInfoChanged');
+            end
+        end
+        
+        function incrementTrialInfo(self, types, status)
+        %INCREMENTTRIALINFO Update trial info
+        %   INCREMENTTRIALINFO(TYPES, STATE) updates the trialInfo 
+        %   structure, incrementing the denominator for each of TYPES.
+        %   STATUS indicates whether the numerator should be incremented,
+        %   and can be either a scalar or a vector of the same length as
+        %   TYPES.
+            if ischar(types)
+                types = {types};
+            elseif ~iscell(types)
+                error('TYPES must be a cell array or vector');
+            end
+            
+            for i=1:length(types)
+                currentType = types{i};
+                
+                if length(status) <= 1
+                    currentStatus = status;
+                else
+                    currentStatus = status(i);
+                end
+                
+                inc = [0 1];
+                if currentStatus
+                    inc(1) = 1;
+                end
+                
+                if self.trialInfo.isKey(currentType)
+                    self.trialInfo(currentType) = self.trialInfo(currentType) + inc;
+                else
+                    self.trialInfo(currentType) = inc;
+                end
             end
         end
     end
