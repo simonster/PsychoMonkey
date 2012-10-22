@@ -137,12 +137,12 @@ classdef PsychoMonkey < handle
             end
 
             if strcmp(func, 'Flip') && ~isempty(self.auxDisplayPtr)
+                [varargout{1:nargout}] = Screen('Flip', self.mainDisplayPtr, 0, 1);
                 Screen('CopyWindow', self.mainDisplayPtr, self.offscreenDupPtr, ...
                     [0 0 self.displaySize]);
+                Screen('FillRect', self.mainDisplayPtr, self.config.backgroundColor);
                 self.redrawUnderlay = true;
-            end
-            
-            if strcmpi(func, 'MakeTexture')
+            elseif strcmpi(func, 'MakeTexture')
                 [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
                 notify(self, 'screenCommand', ...
                     PMEventDataScreenCommand(func, varargin, varargout{1}));
@@ -173,18 +173,18 @@ classdef PsychoMonkey < handle
             end
             if exist('radius', 'var') && ~isempty(radius)
                 target = [location-radius location+radius];
-                self.targetIsOval = [self.targetIsOval; true];
+                self.targetIsOval = [self.targetIsOval; true(size(location, 1), 1)];
             else
                 if length(location) ~= 4
                     error('PLOTTARGET(LOCATION) requires a rect');
                 end
                 target = location;
-                self.targetIsOval = [self.targetIsOval; false];
+                self.targetIsOval = [self.targetIsOval; false(size(location, 1), 1)];
             end
-            target(1) = max(min(self.displaySize(1), target(1)), 0);
-            target(2) = max(min(self.displaySize(2), target(2)), 0);
-            target(3) = max(min(self.displaySize(1), target(3)), 0);
-            target(4) = max(min(self.displaySize(2), target(4)), 0);
+            target(:, 1) = max(min(self.displaySize(1), target(:, 1)), 0);
+            target(:, 2) = max(min(self.displaySize(2), target(:, 2)), 0);
+            target(:, 3) = max(min(self.displaySize(1), target(:, 3)), 0);
+            target(:, 4) = max(min(self.displaySize(2), target(:, 4)), 0);
             self.targetRects = [self.targetRects; target];
             self.redrawUnderlay = true;
             
@@ -447,6 +447,7 @@ classdef PsychoMonkey < handle
                     self.trialInfo(currentType) = inc;
                 end
             end
+            notify(self, 'trialInfoChanged');
         end
     end
     
@@ -679,11 +680,11 @@ classdef PsychoMonkey < handle
                     Screen('FillRect', window, 0, ...
                         [trialInfoOffset 0 self.displaySize(1) self.OSD_HEIGHT]);
 
-                    if isstruct(self.trialInfo)
-                        fields = fieldnames(self.trialInfo);
+                    if isa(self.trialInfo, 'containers.Map')
+                        fields = self.trialInfo.keys();
                         for i=1:min(maxLines, length(fields))
                             name = fields{i};
-                            perf = self.trialInfo.(name);
+                            perf = self.trialInfo(name);
 
                             if perf(2) == 0
                                 pct = 0;
