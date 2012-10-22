@@ -405,7 +405,7 @@ classdef PsychoMonkey < handle
             if ~isequal(trialInfo, self.trialInfo)
                 if isstruct(trialInfo)
                     self.trialInfo = containers.Map(fieldnames(trialInfo), struct2cell(trialInfo));
-                elseif isa(trialInfo, containers.Map)
+                elseif isa(trialInfo, 'containers.Map')
                     self.trialInfo = trialInfo;
                 else
                     error('TRIALINFO must be an instance of containers.Map or a struct');
