@@ -5,7 +5,7 @@ PsychoMonkey is a framework for building monkey behavioral paradigms using Psych
 
 * Support for duplicating the main display to an auxiliary display or via the web, with fixation data overlaid
 * EyeLink, analog, and simulated eye tracker support
-* Modular, object-oriented design implemented as a thin layer on top of Psychtoolbox (<4 KLOC) with minimal new syntax
+* Modular, object-oriented design implemented as a thin layer on top of Psychtoolbox (<5 KLOC) with minimal new syntax
 
 
 Usage Example
