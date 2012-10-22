@@ -56,26 +56,40 @@ classdef PMEyeBase < handle
 
             function isFinished = innerFunctionCircle()
                 dist = norm(location-self.getEyePosition());
-                isFinished = (invert == (dist > radius));
+                fixated = find(dist < radius, 1);
+                if invert
+                    isFinished = isempty(fixated);
+                elseif ~isempty(fixated);
+                    isFinished = fixated;
+                else
+                    isFinished = false;
+                end
             end
             function isFinished = innerFunctionRectangle()
                 eyeLocation = self.getEyePosition();
-                isFinished = (invert ~= (eyeLocation(1) >= location(1) ...
-                    && eyeLocation(1) <= location(3) && eyeLocation(2) >= location(2) ...
-                    && eyeLocation(2) <= location(4)));
+                fixated = find(eyeLocation(1) >= location(:, 1) ...
+                    & eyeLocation(1) <= location(:, 3) & eyeLocation(2) >= location(:, 2) ...
+                    & eyeLocation(2) <= location(:, 4), 1);
+                if invert
+                    isFinished = isempty(fixated);
+                elseif ~isempty(fixated);
+                    isFinished = fixated;
+                else
+                    isFinished = false;
+                end
             end
 
             if exist('radius', 'var') && ~isempty(radius)
-                if length(location) ~= 2
-                    error('FFIXATE(LOCATION, RADIUS) requires that LOCATION be specified as a single point');
+                if size(location, 2) ~= 2
+                    error('FFIXATE(LOCATION, RADIUS) requires that LOCATION be specified as a point or a n x 2 matrix');
                 end
-                if length(radius) ~= 1
-                    error('FFIXATE(LOCATION, RADIUS) requires that RADIUS be specified a single number');
+                if length(radius) ~= 1 && length(radius) ~= size(location, 2)
+                    error('FFIXATE(LOCATION, RADIUS) requires that RADIUS be specified a single number or the same size as LOCATION');
                 end
                 f = @innerFunctionCircle;
             else
                 if length(location) ~= 4
-                    error('FFIXATE(LOCATION) requires a 4-element rect');
+                    error('FFIXATE(LOCATION) requires a 4-element rect or an n x 4 matrix');
                 end
                 f = @innerFunctionRectangle;
             end
