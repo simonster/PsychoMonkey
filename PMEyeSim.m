@@ -22,7 +22,7 @@ classdef PMEyeSim < PMEyeBase
             % Create a cell array of keys
             keys = cell(1, size(positions, 1));
             for i=1:size(positions, 1)
-                keys{i} = KbName(111+i);
+                keys{i} = ['F' num2str(i)];
             end
             
             % Set up key press function
