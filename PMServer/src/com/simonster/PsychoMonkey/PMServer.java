@@ -8,6 +8,8 @@ import java.awt.image.WritableRaster;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -17,11 +19,14 @@ import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketServer;
 import org.java_websocket.handshake.ClientHandshake;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 
 public class PMServer extends WebSocketServer {
 	static final int WS_PORT = 20557;
 	static final int HTTP_PORT = 28781;
+	static ObjectMapper objectMapper = new ObjectMapper();
 	
 	private Set<WebSocket> clientSockets;
 	private Set<String> keysPressed;
@@ -34,7 +39,7 @@ public class PMServer extends WebSocketServer {
 	private PMTextureHandler textureHandler;
 	private HttpServer httpServer;
 	
-	public PMServer(String configJson, String password) throws IOException {
+	public PMServer(String[] keys, Object[] values, String password) throws IOException {
 		// Start web socket server
 		super(new InetSocketAddress(WS_PORT));
 		clientSockets = new CopyOnWriteArraySet<WebSocket>();
@@ -44,7 +49,7 @@ public class PMServer extends WebSocketServer {
 		// Start HTTP server
 		httpServer = HttpServer.create(new InetSocketAddress(HTTP_PORT), -1);
 		textureHandler = new PMTextureHandler();
-		configHandler = new PMConfigHandler(configJson);
+		configHandler = new PMConfigHandler(objectMapper.writeValueAsString(constructMap(keys, values)));
 		httpServer.createContext("/texture/", textureHandler);
 		httpServer.createContext("/config.js", configHandler);
 		httpServer.createContext("/", new PMStaticHandler());
@@ -109,25 +114,31 @@ public class PMServer extends WebSocketServer {
 	
 	/**
 	 * Redraws the on-screen display with specified status data
+	 * @throws JsonProcessingException 
 	 */
-	public void updateStatus(String data) {
-		osdMessage = "OSD: "+data;
+	public void updateStatus(String state, Map<String,String> keyInfo, Map<String,int[]> trialInfo) throws JsonProcessingException {
+		osdMessage = "OSD: {\"state\":"+objectMapper.writeValueAsString(state)+
+			", \"keyInfo\":"+objectMapper.writeValueAsString(keyInfo)+
+			", \"trialInfo\":"+objectMapper.writeValueAsString(trialInfo)+"}";
 		broadcastMessage(osdMessage);
 	}
 	
 	/**
 	 * Redraws targets with the specified data
+	 * @throws JsonProcessingException 
 	 */
-	public void updateTargets(String data) {
-		targetMessage = "TRG: "+data;
+	public void updateTargets(int[][] targetRects, int[] targetIsOval) throws JsonProcessingException {
+		targetMessage = "TRG: {\"targetRects\":"+objectMapper.writeValueAsString(targetRects)+
+				", \"targetIsOval\":"+objectMapper.writeValueAsString(targetIsOval)+"}";
 		broadcastMessage(targetMessage);
 	}
 	
 	/**
 	 * Redraws the display with specified data
+	 * @throws JsonProcessingException 
 	 */
-	public void updateDisplay(String data) {
-		drawMessage = "DRW: "+data;
+	public void updateDisplay(Object data) throws JsonProcessingException {
+		drawMessage = "DRW: "+objectMapper.writeValueAsString(data);
 		broadcastMessage(drawMessage);
 	}
 	
@@ -141,8 +152,8 @@ public class PMServer extends WebSocketServer {
 	/**
 	 * Sends a message notifying that juice was given
 	 */
-	public void juiceGiven(String data) {
-		broadcastMessage("JCE: "+data);
+	public void juiceGiven(double time, double between, int reps) {
+		broadcastMessage("JCE: {\"time\":"+time+", \"between\":"+between+", \"reps\":"+reps+"}");
 	}
 	
 	/**
@@ -247,4 +258,15 @@ public class PMServer extends WebSocketServer {
 		super.stop();
 		httpServer.stop(0);
 	 }
+	
+	/**
+	 * Creates a Map from a set of strings and values
+	 */
+	public HashMap<String, Object> constructMap(String[] keys, Object[] values) {
+		HashMap<String, Object> map = new HashMap<String, Object>(keys.length);
+		for(int i=0; i<keys.length; i++) {
+			map.put(keys[i], values[i]);
+		}
+		return map;
+	}
 }

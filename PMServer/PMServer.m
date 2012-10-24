@@ -23,6 +23,9 @@ classdef PMServer < handle
             javaaddpath(fullfile(pathToPM, 'PMServer', 'bin'));
             javaaddpath(fullfile(pathToPM, 'PMServer', 'Java-WebSocket', 'dist', ...
                 'WebSocket.jar'));
+            javaaddpath(fullfile(pathToPM, 'PMServer', 'lib', 'jackson-core-2.1.0.jar'));
+            javaaddpath(fullfile(pathToPM, 'PMServer', 'lib', 'jackson-annotations-2.1.0.jar'));
+            javaaddpath(fullfile(pathToPM, 'PMServer', 'lib', 'jackson-databind-2.1.0.jar'));
             
             self.config = PM.parseOptions(config, struct(...
                 'password', 'required' ...
@@ -30,35 +33,38 @@ classdef PMServer < handle
             
             function onInitialized(~, ~)
                 % Initialize server
-                serverConfig = PM.config;
-                serverConfig.displaySize = PM.displaySize;
                 self.server = javaObject('com.simonster.PsychoMonkey.PMServer', ...
-                    savejson([], serverConfig), self.config.password);
+                    [fieldnames(PM.config); {'displaySize'}], ...
+                    [struct2cell(PM.config); {PM.displaySize}], ...
+                    self.config.password);
 
                 % Register listeners
                 lastEyePositionUpdateTime = -1;
                 drawCommands = {};
                 function onTargetsChanged(~, ~)
-                    self.server.updateTargets(savejson([], ...
-                        struct('targetRects', PM.targetRects, ...
-                        'targetIsOval', PM.targetIsOval)));
+                    self.server.updateTargets(PM.targetRects, PM.targetIsOval);
                 end
                 function onInfoChanged(~, ~)
-                    status = struct('state', PM.state, ...
-                        'performance', PM.trialInfo, ...
-                        'keyInfo', PM.keyInfo);
-                    self.server.updateStatus(savejson([], status));
+                    if isstruct(PM.keyInfo)
+                        keyInfo = self.server.constructMap(fieldnames(PM.keyInfo), struct2cell(PM.keyInfo));
+                    else
+                        keyInfo = [];
+                    end
+                    if ~isempty(PM.trialInfo)
+                        trialInfo = self.server.constructMap(keys(PM.trialInfo), values(PM.trialInfo));
+                    else
+                        trialInfo = [];
+                    end
+                    self.server.updateStatus(PM.state, keyInfo, trialInfo);
                 end
                 function onScreenCommand(~, event)
                     if strcmp(event.command, 'Flip')
-                        self.server.updateDisplay(savejson([], drawCommands, ...
-                            'NoRowBracket', 1));
+                        self.server.updateDisplay(drawCommands);
                         drawCommands = {};
                     elseif(strcmp(event.command, 'MakeTexture'))
                         self.server.addTexture(event.textureIndex, event.arguments{1});
                     else
-                        drawCommands{end+1} = struct('command', event.command, ...
-                            'arguments', {event.arguments});
+                        drawCommands{end+1} = [{event.command} event.arguments];
                     end
                 end
                 function onTick(~, ~)
@@ -75,10 +81,7 @@ classdef PMServer < handle
                     end
                 end
                 function onJuice(~, event)
-                    self.server.juiceGiven(savejson([], ...
-                        struct('time', event.time, ...
-                        'between', event.between, ...
-                        'reps', event.reps)));
+                    self.server.juiceGiven(event.time, event.between, event.reps);
                 end
                 addlistener(PM, 'targetsChanged', @onTargetsChanged);
                 addlistener(PM, 'stateChanged', @onInfoChanged);
@@ -86,7 +89,9 @@ classdef PMServer < handle
                 addlistener(PM, 'trialInfoChanged', @onInfoChanged);
                 addlistener(PM, 'screenCommand', @onScreenCommand);
                 addlistener(PM, 'tick', @onTick);
-                addlistener(PM.DAQ, 'juice', @onJuice);
+                if ~isempty(PM.DAQ)
+                    addlistener(PM.DAQ, 'juice', @onJuice);
+                end
             end
             addlistener(PM, 'initialized', @onInitialized);
         end

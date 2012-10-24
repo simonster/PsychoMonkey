@@ -99,7 +99,7 @@ PTB.prototype = {
 				var dotSize = typeof size === "object" ? size[i] : size;
 				if(dot_type === 0) {
 					this.ctx.fillRect(x[i]-dotSize/2, y[i]-dotSize/2,
-						x[i]+dotSize/2, y[i]+dotSize/2);
+						dotSize, dotSize);
 				} else {
 					this.ctx.beginPath();
 					this.ctx.arc(x[i], y[i], dotSize/2, 0, Math.PI*2, false);
@@ -125,11 +125,16 @@ PTB.prototype = {
 	"_makeOvalPath":function(rect) {
 		var width = rect[2]-rect[0],
 			height = rect[3]-rect[1];
-		this.ctx.beginPath();
-		this.ctx.translate(rect[0]+width/2, rect[1]+height/2);
-		this.ctx.scale(width/2, height/2);
-		this.ctx.arc(0, 0, 1, 0, Math.PI*2, false);
-		this.ctx.closePath();
+		this.ctx.save();
+		try {
+			this.ctx.beginPath();
+			this.ctx.translate(rect[0]+width/2, rect[1]+height/2);
+			this.ctx.scale(width/2, height/2);
+			this.ctx.arc(0, 0, 1, 0, Math.PI*2, false);
+			this.ctx.closePath();
+		} finally {
+			this.ctx.restore();
+		}
 	},
 	"_getColorArrayOrSetColor":function(color, style, defaultColor) {
 		if(color === null || color === undefined) {
@@ -279,18 +284,18 @@ Client.prototype = {
 		}
 		document.getElementById("osd-keyInfo").textContent = keyInfoStrings.join("\n");
 		
-		var performanceStrings = [];
-		for(var i in info.performance) {
-			var success = info.performance[i][0];
-			var total = info.performance[i][1];
+		var trialInfoStrings = [];
+		for(var i in info.trialInfo) {
+			var success = info.trialInfo[i][0];
+			var total = info.trialInfo[i][1];
 			if(total == 0) {
 				var pct = 0;
 			} else {
 				var pct = Math.round(success/total*100);
 			}
-			performanceStrings.push(i+" "+success+"/"+total+" ("+pct+"%)");
+			trialInfoStrings.push(i+" "+success+"/"+total+" ("+pct+"%)");
 		}
-		document.getElementById("osd-performance").textContent = performanceStrings.join("\n");
+		document.getElementById("osd-performance").textContent = trialInfoStrings.join("\n");
 	},
 	
 	/**
@@ -308,19 +313,20 @@ Client.prototype = {
 	"DRW":function(directives) {
 		var cw = this.canvas.width, ch = this.canvas.height;
 		this.ctx.clearRect(0, 0, cw, ch);
+		if(directives === null) return;
 		this._currentDirectives = directives;
-		if(!(directives instanceof Array)) directives = [directives];
 		for(var i=0; i<directives.length; i++) {
-			var directive = directives[i];
-			if(!(directive.arguments instanceof Array)) directive.arguments = [directive.arguments];
-			if(directive.command === "DrawTexture") {
+			var directive = directives[i],
+				command = directive[0],
+				args = directive.slice(1);
+			if(command === "DrawTexture") {
 				this.ctx.save();
-				var textureIndex = typeof directive.arguments[0] === "object" ? directive.arguments[0][0] : directive.arguments[0],
+				var textureIndex = typeof args[0] === "object" ? args[0][0] : args[0],
 					texture = this._textures[textureIndex],
-					sourceRect = directive.arguments[1],
-					destinationRect = directive.arguments[2],
-					rotationAngle = directive.arguments[3],
-					globalAlpha = directive.arguments[5];
+					sourceRect = args[1],
+					destinationRect = args[2],
+					rotationAngle = args[3],
+					globalAlpha = args[5];
 
 				
 				try {
@@ -345,7 +351,7 @@ Client.prototype = {
 					this.ctx.restore();
 				}
 			} else {
-				this.ptb[directive.command].apply(this.ptb, directive.arguments);
+				this.ptb[command].apply(this.ptb, args);
 			}
 		}
 		this._drawTargets();
