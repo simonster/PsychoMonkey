@@ -136,20 +136,22 @@ classdef PsychoMonkey < handle
                 error('Not initialized');
             end
 
-            if strcmp(func, 'Flip') && ~isempty(self.auxDisplayPtr)
-                [varargout{1:nargout}] = Screen('Flip', self.mainDisplayPtr, 0, 1);
-                Screen('CopyWindow', self.mainDisplayPtr, self.offscreenDupPtr, ...
-                    [0 0 self.displaySize]);
-                Screen('FillRect', self.mainDisplayPtr, self.config.backgroundColor);
-                self.redrawUnderlay = true;
-            elseif strcmpi(func, 'MakeTexture')
+            if strcmpi(func, 'MakeTexture')
                 [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
                 notify(self, 'screenCommand', ...
                     PMEventDataScreenCommand(func, varargin, varargout{1}));
             else
                 notify(self, 'screenCommand', ...
                     PMEventDataScreenCommand(func, varargin));
-                [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
+                if strcmp(func, 'Flip') && ~isempty(self.auxDisplayPtr)
+                    [varargout{1:nargout}] = Screen('Flip', self.mainDisplayPtr, 0, 1);
+                    Screen('CopyWindow', self.mainDisplayPtr, self.offscreenDupPtr, ...
+                        [0 0 self.displaySize]);
+                    Screen('FillRect', self.mainDisplayPtr, self.config.backgroundColor);
+                    self.redrawUnderlay = true;
+                else
+                    [varargout{1:nargout}] = Screen(func, self.mainDisplayPtr, varargin{:});
+                end
             end
         end
         
