@@ -163,6 +163,11 @@ classdef PMEyeLink < PMEyeBase
             end
             
             % Perform calibration
+            if norm(PM.config.backgroundColor) < 127
+                fixationColor = 255;
+            else
+                fixationColor = 0;
+            end
             while true
                 [whatHappened, key] = PM.select(@fModeChanged, @fTargetChanged, ...
                     PM.fKeyPress(KEYS, true));
@@ -174,11 +179,8 @@ classdef PMEyeLink < PMEyeBase
                     if showPoint && tx && ty
                         % Show point
                         pointCenter = [tx ty];
-                        PM.screen('FillRect', 0, [0 0 PM.displaySize]);
-                        PM.screen('FillOval', 255, ...
+                        PM.screen('FillOval', fixationColor, ...
                             [pointCenter-pointRadius pointCenter+pointRadius]);
-                    else
-                        PM.screen('FillRect', 0, [0 0 PM.displaySize]);
                     end
                     PM.screen('Flip');
                 elseif whatHappened == 3        % Key pressed
@@ -208,7 +210,7 @@ classdef PMEyeLink < PMEyeBase
                                     animateFn = self.fBlinkPoint(pointCenter);
                                 end
                                 PM.select(PM.fKeyPress(KEYS, true), animateFn);
-                                PM.screen('FillOval', 255, ...
+                                PM.screen('FillOval', fixationColor, ...
                                     [pointCenter-pointRadius pointCenter+pointRadius]);
                                 PM.screen('Flip');
                             end
