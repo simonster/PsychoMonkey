@@ -7,8 +7,8 @@ STATE_AUTO = 3;
 %% Initialization
 PM = PsychoMonkey(config.PM_config);
 PMDAQ(PM, config.PMDAQ_config);
-%PMEyeLink(PM, config.PMEyeLink_config);
-PMEyeSim(PM, [-7 0; 7 0; 0 -7; 0 7; 0 0]);
+PMEyeLink(PM, config.PMEyeLink_config);
+%PMEyeSim(PM, [-7 0; 7 0; 0 -7; 0 7; 0 0]);
 PMServer(PM, config.PMServer_config);
 PM.init();
 
@@ -54,6 +54,7 @@ while state
         
         keys = struct(...
             'C', 'Calibrate',...
+            'D', 'Drift correction',...
             'LEFTARROW', 'Left dot',...
             'RIGHTARROW', 'Right dot',...
             'E', 'Center',...
@@ -79,6 +80,8 @@ while state
             switch key
                 case 'C'
                     PM.EyeTracker.calibrate();
+                case 'D'
+                    PM.EyeTracker.correctDrift(dotCenter(1), dotCenter(2));
                 case 'LEFTARROW'
                     dotAngle = [-config.dotEccentricity 0];
                 case 'RIGHTARROW'
@@ -114,6 +117,7 @@ while state
         
         keys = struct(...
             'C', 'Calibrate',...
+            'D', 'Drift correction',...
             'E', 'Center only',...
             'H', 'Horizontal only',...
             'V', 'Vertical only',...
@@ -155,6 +159,8 @@ while state
                     switch key
                         case 'C'
                             PM.EyeTracker.calibrate();
+                        case 'D'
+                            PM.EyeTracker.correctDrift(dotCenter(1), dotCenter(2));
                         case 'E'
                             dots = [0 0];
                             dotIndex = 1;
@@ -192,6 +198,48 @@ while state
                             config.juiceBetweenCorrect, config.juiceRepsCorrect);
                     end
                 end
+                
+                % Uncomment to move fixation point after reward given
+%                 if whatHappened == 3
+%                     PM.screen('Flip');
+%                     PM.clearTargets();
+%                     [whatHappened, key] = PM.select( ...
+%                        PM.fKeyPress(keys, true), ... 
+%                        PM.fTimer(GetSecs()+2) ...
+%                     );
+%                     if whatHappened == 1        % Key press
+%                         switch key
+%                             case 'C'
+%                                 PM.EyeTracker.calibrate();
+%                             case 'D'
+%                                 PM.EyeTracker.correctDrift(dotCenter(1), dotCenter(2));
+%                             case 'E'
+%                                 dots = [0 0];
+%                                 dotIndex = 1;
+%                                 break;
+%                             case 'H'
+%                                 dots = horizontalDots;
+%                                 dotIndex = 1;
+%                                 break;
+%                             case 'V'
+%                                 dots = verticalDots;
+%                                 dotIndex = 1;
+%                                 break;
+%                             case 'A'
+%                                 dots = [horizontalDots; verticalDots];
+%                                 dotIndex = 1;
+%                                 break;
+%                             case 'J'
+%                                 PM.DAQ.giveJuice(config.juiceManual);
+%                             case 'M'
+%                                 nextState = STATE_MANUAL;
+%                                 break;
+%                             case 'ESCAPE'
+%                                 nextState = STATE_END;
+%                                 break;
+%                         end
+%                     end
+%                end
             end
         end
     end

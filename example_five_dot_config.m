@@ -5,10 +5,10 @@ config = struct();
 config.PM_config = struct();
 
 % # of the main (task) display
-config.PM_config.mainDisplay = 1;
+config.PM_config.mainDisplay = 2;
 
 % # of the auxiliary (info) display
-config.PM_config.auxDisplay = 2;
+config.PM_config.auxDisplay = 1;
 
 % Background color of the screen
 %config.PM_config.backgroundColor = 0;
@@ -17,7 +17,7 @@ config.PM_config.auxDisplay = 2;
 config.PM_config.displayWidth = 41;
 
 % Distance from the animal to the main display, same units as above
-config.PM_config.displayDistance = 55;
+config.PM_config.displayDistance = 47;
 
 % Whether to enable debug mode. Currently, this prints statistics about
 % every PM.select() call to validate real-time performance
@@ -31,7 +31,7 @@ config.PMDAQ_config = struct();
 config.PMDAQ_config.daqAdaptor = 'nidaq';
 
 % DAQ adaptor ID
-config.PMDAQ_config.daqID = 'Dev2';
+config.PMDAQ_config.daqID = 'Dev1';
 
 % Input type. I think this will always be SingleEnded, but maybe not.
 %config.PMDAQ_config.daqInputType = 'SingleEnded';
@@ -42,7 +42,7 @@ config.PMDAQ_config.daqID = 'Dev2';
 %config.PMDAQ_config.analogChannels = struct();
 
 % Juice channel. This is special because it's a digital channel.
-config.PMDAQ_config.juiceChannel = 8;
+config.PMDAQ_config.juiceChannel = 0;
 
 % Analog sample rate in Hz. If using the motion detector, this should be at
 % least 10000. If not, 1000 is typically a good value.
@@ -75,28 +75,28 @@ config.PMServer_config.password = 'goodmonkey';
 
 %% example_five_dot configuration
 % Radius of the fixation dot, in degrees
-config.fixationPointRadius = 0.2;
+config.fixationPointRadius = 0.3;
 
 % Radius around the fixation dot for fixation, in degrees
-config.fixationRadius = 5;
+config.fixationRadius = 2.5;
 
 % Juice given manually (seconds)
 config.juiceManual = 150e-3;
 
 % Duration of juice pulses for a correct response
-config.juiceTimeCorrect = 150e-3;
+config.juiceTimeCorrect = 50e-3;
 
 % Amount of time between juice pulses for correct response
-config.juiceBetweenCorrect = 20e-3;
+config.juiceBetweenCorrect = 30e-3;
 
 % Number of juice pulses given for correct response
-config.juiceRepsCorrect = 2;
+config.juiceRepsCorrect = 5;
 
 % Eccentricity of the dots on the screen, in degrees
-config.dotEccentricity = 7;
+config.dotEccentricity = 8;
 
 % The amount of time the dot is on for
-config.dotTime = 5000e-3;
+config.dotTime = 7000e-3;
 
 % Reward given after fixating this long
-config.dotRewardTime = 1200e-3;
+config.dotRewardTime = 3000e-3;
