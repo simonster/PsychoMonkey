@@ -14,7 +14,7 @@ PM.init();
 
 % Initialize performance info for OSD
 trialInfo = struct(...
-    'Success', [0 0] ...
+    'Rewarded', [0 0] ...
 );
 PM.setTrialInfo(trialInfo);
 
@@ -142,12 +142,9 @@ while state
                 curTime = GetSecs();
                 rewardTime = curTime + config.dotRewardTime;
                 advanceIfTimedOut = rewardTime > advanceTime;
-                if advanceIfTimedOut
-                	timeUntil = advanceTime;
-                else
-                    timeUntil = rewardTime;
-                end
-                
+                % Don't move dot as long as monkey is fixating
+                timeUntil = rewardTime;
+
                 % Wait for fixation, motion, or keypress
                 [whatHappened, key] = PM.select( ...
                    PM.fKeyPress(keys, true), ... 
@@ -187,16 +184,17 @@ while state
                             break;
                     end
                 elseif whatHappened == 2    % Timer activated
-                    if advanceIfTimedOut
-                        dotIndex = dotIndex + 1;
-                        if dotIndex > size(dots, 1)
-                            dotIndex = 1;
-                        end
-                        break;
-                    else
-                        PM.DAQ.giveJuice(config.juiceTimeCorrect, ...
-                            config.juiceBetweenCorrect, config.juiceRepsCorrect);
+                    PM.DAQ.giveJuice(config.juiceTimeCorrect, ...
+                        config.juiceBetweenCorrect, config.juiceRepsCorrect);
+                    PM.incrementTrialInfo('Rewarded', true);
+                end
+                
+                if advanceIfTimedOut
+                    dotIndex = dotIndex + 1;
+                    if dotIndex > size(dots, 1)
+                        dotIndex = 1;
                     end
+                    break;
                 end
                 
                 % Uncomment to move fixation point after reward given
