@@ -178,7 +178,7 @@ classdef PMDAQ < handle
             self.bufferLength(channel) = 0;
         end
         
-        function f = fAboveThreshold(channelName, threshold)
+        function f = fAboveThreshold(self, channelName, threshold)
         %FABOVETHRESHOLD Create channel monitor function
         %   FABOVETHRESHOLD(CHANNELNAME, THRESHOLD) creates a function
         %   that returns true if the voltage on CHANNELNAME rises above 
@@ -186,7 +186,7 @@ classdef PMDAQ < handle
             f = @() any(self.getData(channelName) > threshold);
         end
         
-        function f = fBelowThreshold(channelName, threshold)
+        function f = fBelowThreshold(self, channelName, threshold)
         %FBELOWTHRESHOLD Create channel monitor function
         %   FBELOWTHRESHOLD(CHANNELNAME, THRESHOLD) creates a function
         %   that returns true if the voltage on CHANNELNAME falls below 
@@ -194,7 +194,7 @@ classdef PMDAQ < handle
             f = @() any(self.getData(channelName) < threshold);
         end
     
-        function f = fDerivativeExceedsThreshold(channelName, threshold)
+        function f = fDerivativeExceedsThreshold(self, channelName, threshold)
         %FDERIVATIVEEXCEEDSTHRESHOLD Create channel monitor function
         %   FDERIVATIVEEXCEEDSTHRESHOLD(CHANNELNAME, THRESHOLD) returns a
         %   function that returns true when the difference between samples
