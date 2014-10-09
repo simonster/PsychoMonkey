@@ -88,7 +88,7 @@ classdef PMEyeBase < handle
                 end
                 f = @innerFunctionCircle;
             else
-                if length(location) ~= 4
+                if size(location, 2) ~= 4
                     error('FFIXATE(LOCATION) requires a 4-element rect or an n x 4 matrix');
                 end
                 f = @innerFunctionRectangle;
@@ -102,7 +102,16 @@ classdef PMEyeBase < handle
         %   It returns TRUE when the animation is complete.
             PM = self.PM; %#ok<*PROP>
             radii = round(PM.angleToPixels(self.FIXATION_POINT_RADIUS));
-            radii = [repmat(radii:radii/2:radii*5, 1, 4) radii];
+            radii = [repmat(radii:radii:radii*5, 1, 4) radii];
+            colors = [repmat([
+                    255 0 0
+                    0 255 0
+                    0 0 255
+                    0 255 255
+                    255 255 0
+                    255 0 255
+                    255 255 255
+                ], 5, 1); 255 255 255; 255 255 255];
             index = 1;
             
             function isFinished = animationFunction()
@@ -113,8 +122,7 @@ classdef PMEyeBase < handle
                 end
                 
                 % Show oval
-                PM.screen('FillOval', 255, ...
-                    [pointCenter-radii(index) pointCenter+radii(index)]);
+                PM.screen('DrawDots', pointCenter, radii(index), colors(index, :), [], 0);
                 index = index + 1;
                 PM.screen('Flip');
             end
