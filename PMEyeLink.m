@@ -20,7 +20,8 @@ classdef PMEyeLink < PMEyeBase
                     'calibrationPoints', [0 0; -1 0; 1 0; 0 -1; 0 1]*5, ...
                     'eye', 'r', ...
                     'edfName', [num2str(floor(rand()*100000)) '.edf'], ...
-                    'drawOnTracker', false ...
+                    'drawOnTracker', false, ...
+                    'areaProportion', [0.8 0.8] ...
                 ));
             
             % Register with PsychoMonkey
@@ -42,10 +43,13 @@ classdef PMEyeLink < PMEyeBase
                 error('Could not initialize EyeLink');
             end
             
+            prop_string = num2str([self.config.areaProportion(1) self.config.areaProportion(2)]);
             Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', ...
                 0, 0, PM.displaySize(1)-1, PM.displaySize(2)-1);
             Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, ...
                 0, PM.displaySize(1)-1, PM.displaySize(2)-1);
+            Eyelink('command', ['calibration_area_proportion ' prop_string]);
+            Eyelink('command', ['validation_area_proportion ' prop_string]);
             Eyelink('Openfile', self.config.edfName);
             
             function onStateChanged(~, ~)
@@ -232,9 +236,10 @@ classdef PMEyeLink < PMEyeBase
                 numberOfSamples = 50;
             end
             samples = self.getEyePosition(numberOfSamples);
-            offset = round([correctX correctY] - median(samples));
+            correct = round([correctX correctY]);
+            offset = round(correct - median(samples));
             Eyelink('command', 'drift_correction %ld %ld %ld %ld', ...
-                offset(1), offset(2), correctX, correctY);
+                offset(1), offset(2), correct(1), correct(2));
         end
     end
 end
