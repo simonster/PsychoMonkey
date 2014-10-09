@@ -28,6 +28,11 @@ classdef PMDAQ < handle
     properties(SetAccess = private, GetAccess = public)
         % Configuration object
         config;
+
+        % Function to be executed by PsychoMonkey on tick, if any. We
+        % should be able to keep this modular and use notify but we can't
+        % because MATLAB is awful.
+        tick = [];
     end
     
     properties(Constant)
@@ -97,16 +102,17 @@ classdef PMDAQ < handle
             end
         end
         
-        function delete(~)
+        function delete(self)
+            self.haltJuice();
             daqreset;
         end
         
         function giveJuice(self, time, between, reps)
-            % GIVEJUICE Administer a specified amount of juice
-            %   GIVEJUICE(TIME) administers juice for TIME seconds
-            %
-            %   GIVEJUICE(TIME, BETWEEN, REPS) adminsters juice REPS times,
-            %   with BETWEEN seconds between each administration
+        % GIVEJUICE Administer a specified amount of juice
+        %   GIVEJUICE(TIME) administers juice for TIME seconds
+        %
+        %   GIVEJUICE(TIME, BETWEEN, REPS) adminsters juice REPS times,
+        %   with BETWEEN seconds between each administration
             if ~exist('between', 'var')
                 between = 0;
             end
@@ -121,6 +127,65 @@ classdef PMDAQ < handle
                 PM.select(PM.fTimer(GetSecs()+time));
                 putvalue(self.dio.Line(1), 0);
                 PM.select(PM.fTimer(GetSecs()+between));
+            end
+        end
+        
+        function giveJuiceAsync(self, time, between, reps)
+        % GIVEJUICEASYNC Administer a specified amount of juice
+        %   GIVEJUICEASYNC(TIME) administers juice for TIME seconds
+        %
+        %   GIVEJUICEASYNC(TIME, BETWEEN, REPS) adminsters juice
+        %   REPS times, with BETWEEN seconds between each
+        %   administration
+        %
+        %   Unlike GIVEJUICE, GIVEJUICEASYNC returns immediately.
+            if ~exist('between', 'var')
+                between = 0;
+            end
+            if ~exist('reps', 'var')
+                reps = 1;
+            elseif reps < 1
+                return;
+            end
+            if ~isempty(self.tick)
+                warning('attempted to give juice while juice was already being given');
+                return;
+            end
+            
+            notify(self, 'juice', PMEventDataJuice(time, between, reps));
+            PM = self.PM; %#ok<*PROP>
+
+            i = 1;
+            givingJuice = false;
+            timer = PM.fTimer(GetSecs());
+            ch = self.dio.Line(1);
+            function onTick()
+                if timer()
+                    if givingJuice
+                        putvalue(ch, 0);
+                        t = GetSecs();
+                        givingJuice = false;
+                        i = i + 1;
+                        if i > reps
+                            self.tick = [];
+                        else
+                            timer = PM.fTimer(t+between);
+                        end
+                    else
+                        putvalue(ch, 1);
+                        timer = PM.fTimer(GetSecs()+time);
+                        givingJuice = true;
+                    end
+                end
+            end
+            self.tick = @onTick;
+        end
+
+        function haltJuice(self)
+        % HALTJUICE Stop giving juice given with giveJuiceAsync
+            if ~isempty(self.tick)
+                putvalue(self.dio.Line(1), 0);
+                self.tick = [];
             end
         end
         

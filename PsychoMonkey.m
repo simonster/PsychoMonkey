@@ -177,7 +177,7 @@ classdef PsychoMonkey < handle
                 target = [location-radius location+radius];
                 self.targetIsOval = [self.targetIsOval; true(size(location, 1), 1)];
             else
-                if length(location) ~= 4
+                if size(location, 2) ~= 4
                     error('PLOTTARGET(LOCATION) requires a rect');
                 end
                 target = location;
@@ -224,6 +224,9 @@ classdef PsychoMonkey < handle
                     nIter = nIter + 1;
                     loopStartTime = currentTime;
 
+                    if ~isempty(self.DAQ) && ~isempty(self.DAQ.tick)
+                        self.DAQ.tick();
+                    end
                     notify(self, 'tick');
 
                     tempTime = GetSecs();
@@ -277,6 +280,9 @@ classdef PsychoMonkey < handle
                 end
             else
                 while true
+                    if ~isempty(self.DAQ) && ~isempty(self.DAQ.tick)
+                        self.DAQ.tick();
+                    end
                     notify(self, 'tick');
                     for index=indexes
                         f = varargin{index};
