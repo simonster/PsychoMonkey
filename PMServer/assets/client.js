@@ -17,6 +17,45 @@
  */
 var canvas;
 
+// Transpose an array of arrays
+function transpose(array) {
+	var newArray = [];
+	for(var i=0; i<array[0].length; i++) {
+		var newArrayX = [];
+		for(var j=0; j<array.length; j++) {
+			newArrayX.push(array[j][i]);
+		}
+		newArray.push(newArrayX);
+	}
+	return newArray;
+}
+
+// Repeat a value n times in an array
+function repeat(x, n) {
+	var out = [];
+	for(var i = 0; i < n; i++) {
+		out[i] = x;
+	}
+	return out;
+}
+
+// Convert an RGB array or scalar to CSS
+function colorToStyle(color) {
+	if(color === null || color === undefined) {
+		return "white";
+	} else if(typeof color !== "object") {
+		return "rgb("+color+", "+color+", "+color+")";
+	} else if(color.length === 1) {
+		return "rgb("+color[0]+", "+color[0]+", "+color[0]+")";
+	} else if(color.length === 3) {
+		return "rgb("+color[0]+", "+color[1]+", "+color[2]+")";
+	} else if(color.length === 4) {
+		return "rgba("+color[0]+", "+color[1]+", "+color[2]+", "+color[3]+")";
+	} else {
+		throw new Error("Invalid color");
+	}
+}
+
 var PTB = function(context) {
 	this.ctx = context;
 }
@@ -27,7 +66,7 @@ PTB.prototype = {
 			var colorArray = this._getColorArrayOrSetColor(color, "fillStyle", "white");
 			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
-				if(colorArray) this.ctx.fillStyle = this._colorToStyle(colorArray[i]);
+				if(colorArray) this.ctx.fillStyle = colorToStyle(colorArray[i]);
 				this._makeOvalPath(rects[i]);
 				this.ctx.fill();
 			}
@@ -43,7 +82,7 @@ PTB.prototype = {
 			if(penWidth.length === 1) this.ctx.lineWidth = penWidth ? penWidth : 1;
 			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
-				if(colorArray) this.ctx.strokeStyle = this._colorToStyle(colorArray[i]);
+				if(colorArray) this.ctx.strokeStyle = colorToStyle(colorArray[i]);
 				if(penWidth.length !== 1) this.ctx.lineWidth = penWidth[i];
 				this._makeOvalPath(rects[i]);
 				this.ctx.stroke();
@@ -59,7 +98,7 @@ PTB.prototype = {
 			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
 				var rect = rects[i];
-				if(colorArray) this.ctx.fillStyle = this._colorToStyle(colorArray[i]);
+				if(colorArray) this.ctx.fillStyle = colorToStyle(colorArray[i]);
 				this.ctx.fillRect(rect[0], rect[1], rect[2]-rect[0], rect[3]-rect[1]);
 			}
 		} finally {
@@ -75,7 +114,7 @@ PTB.prototype = {
 			var rects = this._getRectArray(rect);
 			for(var i=0; i<rects.length; i++) {
 				var rect = rects[i];
-				if(colorArray) this.ctx.strokeStyle = this._colorToStyle(colorArray[i]);
+				if(colorArray) this.ctx.strokeStyle = colorToStyle(colorArray[i]);
 				if(penWidth.length !== 1) this.ctx.lineWidth = penWidth[i];
 				this.ctx.strokeRect(rect[0], rect[1], rect[2]-rect[0], rect[3]-rect[1]);
 			}
@@ -95,7 +134,7 @@ PTB.prototype = {
 			var x = typeof xy[0] === "object" ? xy[0] : [xy[0]],
 				y = typeof xy[1] === "object" ? xy[1] : [xy[1]];
 			for(var i=0; i<x.length; i++) {
-				if(colorArray) this.ctx.fillStyle = this._colorToStyle(colorArray[i]);
+				if(colorArray) this.ctx.fillStyle = colorToStyle(colorArray[i]);
 				var dotSize = typeof size === "object" ? size[i] : size;
 				if(dot_type === 0) {
 					this.ctx.fillRect(x[i]-dotSize/2, y[i]-dotSize/2,
@@ -110,17 +149,6 @@ PTB.prototype = {
 		} finally {
 			this.ctx.restore();
 		}
-	},
-	"_transpose":function(array) {
-		var newArray = [];
-		for(var i=0; i<array[0].length; i++) {
-			var newArrayX = [];
-			for(var j=0; j<array.length; j++) {
-				newArrayX.push(array[j][i]);
-			}
-			newArray.push(newArrayX);
-		}
-		return newArray;
 	},
 	"_makeOvalPath":function(rect) {
 		var width = rect[2]-rect[0],
@@ -142,9 +170,9 @@ PTB.prototype = {
 			return undefined;
 		}
 		if(typeof color === "object" && typeof color[0] === "object") {
-			return this._transpose(color);
+			return transpose(color);
 		}
-		this.ctx[style] = this._colorToStyle(color);
+		this.ctx[style] = colorToStyle(color);
 		return undefined;
 	},
 	"_getRectArray":function(rect) {
@@ -152,24 +180,9 @@ PTB.prototype = {
 			return [[0, 0, CONFIG.displaySize[0], CONFIG.displaySize[1]]];
 		}
 		if(typeof rect[0] === "object") {
-			return this._transpose(rect);
+			return transpose(rect);
 		}
 		return [rect];
-	},
-	"_colorToStyle":function(color) {
-		if(color === null || color === undefined) {
-			return "white";
-		} else if(typeof color !== "object") {
-			return "rgb("+color+", "+color+", "+color+")";
-		} else if(color.length === 1) {
-			return "rgb("+color[0]+", "+color[0]+", "+color[0]+")";
-		} else if(color.length === 3) {
-			return "rgb("+color[0]+", "+color[1]+", "+color[2]+")";
-		} else if(color.length === 4) {
-			return "rgba("+color[0]+", "+color[1]+", "+color[2]+", "+color[3]+")";
-		} else {
-			throw new Error("Invalid color");
-		}
 	}
 };
 
@@ -180,7 +193,6 @@ var Client = function() {
 		var data = event.data,
 			code = data.substr(0, 3),
 			payload = JSON.parse(data.substr(5));
-		console.log(data);
 		if(code in client) {
 			client[code](payload);
 		} else {
@@ -306,6 +318,36 @@ Client.prototype = {
 		this.DRW(this._currentDirectives);
 		this._drawTargets();
 	},
+
+	/**
+	 * Draws a texture
+	 */
+	"_drawTexture":function(textureIndex, sourceRect, destinationRect, rotationAngle, globalAlpha) {
+		this.ctx.save();
+		var texture = this._textures[textureIndex];
+		
+		try {
+			if(rotationAngle) this.ctx.rotate(rotationAngle*Math.PI/180);
+			if(globalAlpha) this.ctx.globalAlpha = globalAlpha;
+			
+			if(sourceRect) {
+				this.ctx.drawImage(texture, sourceRect[0], sourceRect[1],
+					sourceRect[2]-sourceRect[0], sourceRect[3]-sourceRect[1],
+					destinationRect[0], destinationRect[1],
+					destinationRect[2]-destinationRect[0],
+					destinationRect[3]-destinationRect[1]);
+			} else if(destinationRect) {
+				this.ctx.drawImage(texture, destinationRect[0], destinationRect[1],
+					destinationRect[2]-destinationRect[0],
+					destinationRect[3]-destinationRect[1]);
+			} else {
+				var nw = texture.naturalWidth, nh = texture.naturalHeight;
+				this.ctx.drawImage(texture, cw/2-nw/2, ch/2-nh/2);
+			}
+		} finally {
+			this.ctx.restore();
+		}
+	},
 	
 	/**
 	 * Redraws the underlying image
@@ -320,35 +362,32 @@ Client.prototype = {
 				command = directive[0],
 				args = directive.slice(1);
 			if(command === "DrawTexture") {
-				this.ctx.save();
-				var textureIndex = typeof args[0] === "object" ? args[0][0] : args[0],
-					texture = this._textures[textureIndex],
-					sourceRect = args[1],
-					destinationRect = args[2],
-					rotationAngle = args[3],
-					globalAlpha = args[5];
-
-				
-				try {
-					if(rotationAngle) this.ctx.rotate(rotationAngle*Math.PI/180);
-					if(globalAlpha) this.ctx.globalAlpha = globalAlpha;
-					
-					if(sourceRect) {
-						this.ctx.drawImage(texture, sourceRect[0], sourceRect[1],
-							sourceRect[2]-sourceRect[0], sourceRect[3]-sourceRect[1],
-							destinationRect[0], destinationRect[1],
-							destinationRect[2]-destinationRect[0],
-							destinationRect[3]-destinationRect[1]);
-					} else if(destinationRect) {
-						this.ctx.drawImage(texture, destinationRect[0], destinationRect[1],
-							destinationRect[2]-destinationRect[0],
-							destinationRect[3]-destinationRect[1]);
-					} else {
-						var nw = texture.naturalWidth, nh = texture.naturalHeight;
-						this.ctx.drawImage(texture, cw/2-nw/2, ch/2-nh/2);
+				this._drawTexture(typeof args[0] === "object" ? args[0][0] : args[0], args[1], args[2], args[3], args[5]);
+			} else if(command === "DrawTextures") {
+				var IS_SCALAR = [true, false, false, true, true, true],
+				    n = 1;
+				console.log(args);
+				for(var i = 0; i < IS_SCALAR.length; i++) {
+					if(IS_SCALAR[i]) {
+						if(typeof args[i] === "object" && args[i] !== null) {
+							n = Math.max(n, args[i].length);
+						}
+					} else if(typeof args[i] === "object" && args[i] !== null && typeof args[i][0] === "object") {
+						args[i] = transpose(args[i]);
+						n = Math.max(n, args[i].length);
 					}
-				} finally {
-					this.ctx.restore();
+				}
+				for(var i = 0; i < IS_SCALAR.length; i++) {
+					if(IS_SCALAR[i]) {
+						if(typeof args[i] !== "object" || args[i] === null) {
+							args[i] = repeat(args[i], n);
+						}
+					} else if(typeof args[i] !== "object" || args[i] === null || typeof args[i][0] !== "object") {
+						args[i] = repeat(args[i], n);
+					}
+				}
+				for(var i = 0; i < n; i++) {
+					this._drawTexture(args[0][i], args[1][i], args[2][i], args[3][i], args[5][i]);
 				}
 			} else {
 				this.ptb[command].apply(this.ptb, args);
@@ -434,6 +473,7 @@ function onPassword() {
 
 window.addEventListener("DOMContentLoaded", function(event) {	
 	document.getElementById("password-input").focus();
+	document.body.style.backgroundColor = colorToStyle(CONFIG.backgroundColor);
 	
 	canvas = document.createElement("canvas");
 	canvas.width = CONFIG.displaySize[0];
