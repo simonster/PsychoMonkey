@@ -122,6 +122,38 @@ PTB.prototype = {
 			this.ctx.restore();
 		}
 	},
+	"FillPoly":function(color, points) {
+		this.ctx.save();
+		try {
+			this._getColorArrayOrSetColor(color, "fillStyle", "white");
+			points = transpose(points);
+			this.ctx.beginPath();
+			this.ctx.moveTo(points[0][0], points[0][1]);
+			for(var i = 1; i < points.length; i++) {
+				this.ctx.lineTo(points[i][0], points[i][1]);
+			}
+			this.ctx.closePath();
+			this.ctx.fill();
+		} finally {
+			this.ctx.restore();
+		}
+	},
+	"FramePoly":function(color, points, penWidth) {
+		this.ctx.save();
+		try {
+			this._getColorArrayOrSetColor(color, "strokeStyle", "white");
+			this.ctx.penWidth = penWidth ? penWidth : 1;
+			points = transpose(points);
+			this.ctx.beginPath();
+			this.ctx.moveTo(points[0][0], points[0][1]);
+			for(var i = 1; i < points.length; i++) {
+				this.ctx.lineTo(points[i][0], points[i][1]);
+			}
+			this.ctx.closePath();
+		} finally {
+			this.ctx.restore();
+		}
+	},
 	"DrawDots":function(xy, size, color, center, dot_type) {
 		this.ctx.save();
 		try {
