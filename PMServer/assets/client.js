@@ -329,15 +329,18 @@ Client.prototype = {
 		document.getElementById("osd-keyInfo").textContent = keyInfoStrings.join("\n");
 		
 		var trialInfoStrings = [];
-		for(var i in info.trialInfo) {
-			var success = info.trialInfo[i][0];
-			var total = info.trialInfo[i][1];
+		var trialInfoKeys = Object.keys(info.trialInfo);
+		trialInfoKeys.sort();
+		for(var i=0; i<trialInfoKeys.length; i++) {
+			var key = trialInfoKeys[i];
+			var success = info.trialInfo[key][0];
+			var total = info.trialInfo[key][1];
 			if(total == 0) {
 				var pct = 0;
 			} else {
 				var pct = Math.round(success/total*100);
 			}
-			trialInfoStrings.push(i+" "+success+"/"+total+" ("+pct+"%)");
+			trialInfoStrings.push(key+" "+success+"/"+total+" ("+pct+"%)");
 		}
 		document.getElementById("osd-performance").textContent = trialInfoStrings.join("\n");
 	},

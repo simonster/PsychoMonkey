@@ -21,6 +21,12 @@ classdef PMDAQ < handle
         % Struct whose members indicate which channels belong to which
         % components.
         channels;
+
+        % Internal things for efficient events
+        eventUDDParent;
+        eventIndex;
+        strobeUDDParent;
+        strobeIndex;
         
         PM;
     end
@@ -53,6 +59,8 @@ classdef PMDAQ < handle
                     'daqInputType', 'SingleEnded', ...
                     'analogChannels', struct(), ...
                     'juiceChannel', [], ...
+                    'eventChannels', [], ...
+                    'strobeChannel', [], ...
                     'analogSampleRate', 1000 ...
                 ));
             
@@ -96,15 +104,48 @@ classdef PMDAQ < handle
             end
             
             % Initialize digital IO
-            if ~isempty(self.config.juiceChannel)
+            if ~isempty(self.config.juiceChannel) || ~isempty(self.config.eventChannels) ...
+                    || ~isempty(self.config.strobeChannel)
                 self.dio = digitalio(self.config.daqAdaptor, self.config.daqID);
+            end
+            if ~isempty(self.config.juiceChannel)
                 addline(self.dio, self.config.juiceChannel, 'out');
+            end
+
+            % Initialize events
+            if ~isempty(self.config.eventChannels)
+                event_lines = addline(self.dio, self.config.eventChannels, 'out');
+                udd = daqgetfield(event_lines, 'uddobject');
+                self.eventUDDParent = get(udd(1), 'Parent');
+                eventIndex = get(udd, 'Index');
+                self.eventIndex = [eventIndex{:}];
+            end
+
+            % Initialize strobe
+            if ~isempty(self.config.strobeChannel)
+                strobe_line = addline(self.dio, self.config.strobeChannel, 'out');
+                udd = daqgetfield(strobe_line, 'uddobject');
+                self.strobeUDDParent = get(udd, 'Parent');
+                self.strobeIndex = get(udd, 'Index');
             end
         end
         
         function delete(self)
             self.haltJuice();
             daqreset;
+        end
+
+        function sendEvent(self, code)
+        % SENDEVENT Send an event
+        %   SENDEVENT(CODE) sends event code CODE
+            putvalue(self.eventUDDParent, code, self.eventIndex);
+            if ~isempty(self.strobeIndex)
+                putvalue(self.strobeUDDParent, 1, self.strobeIndex);
+            end
+            putvalue(self.eventUDDParent, 0, self.eventIndex);
+            if ~isempty(self.strobeIndex)
+                putvalue(self.strobeUDDParent, 0, self.strobeIndex);
+            end
         end
         
         function giveJuice(self, time, between, reps)
